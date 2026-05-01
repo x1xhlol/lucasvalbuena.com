@@ -163,13 +163,11 @@ export function Projects() {
       title: 'This portfolio',
       subtitle: 'lucasvalbuena.com',
       description:
-        'The site you\'re on—Next.js, Tailwind, project modals, blog, and photography—shipped as open source.',
+        'Personal site built with Next.js and Tailwind: projects, blog, stack, and photos.',
       fullDescription:
-        'This entry is the same codebase that serves the page you\'re reading: my personal site at lucasvalbuena.com. Next.js and Tailwind, with interactive project details, skills and stack sections, an MDX blog, and a photography gallery. The open-source snapshot lives in the lucasvalbuena.com repo on GitHub.',
-      image: '/projects/lucasvalbuena-portfolio.png',
+        'My personal site runs on Next.js and Tailwind. I use it for project write-ups, blog posts, and my photography. Source is on GitHub.',
       links: {
         github: 'https://github.com/x1xhlol/lucasvalbuena.com',
-        demo: 'https://lucasvalbuena.com',
       },
       icon: Globe,
     },
