@@ -1,7 +1,5 @@
 # AGENTS.md
 
-## Cursor Cloud specific instructions
-
 ### Overview
 
 This is a **Next.js 16 (canary)** portfolio website using React 19, Tailwind CSS v4, shadcn/ui, and Framer Motion. It is a single-service application — only the Next.js dev server needs to run.
