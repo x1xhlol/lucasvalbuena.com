@@ -1,7 +1,6 @@
 # Lucas Valbuena
 
-This is my personal site. It has the main portfolio, a small blog, and a photo
-gallery.
+This is my personal site. It has the main portfolio, a small blog, and a photo gallery. 
 
 ## Local setup
 
