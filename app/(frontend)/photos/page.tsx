@@ -7,6 +7,9 @@ import { ScrollToTop } from '@/components/photos/scroll-to-top'
 export const metadata: Metadata = {
   title: 'Photos | Lucas Valbuena',
   description: 'A collection of photographs by Lucas Valbuena.',
+  alternates: {
+    canonical: '/photos',
+  },
 }
 
 export const dynamic = 'force-dynamic'

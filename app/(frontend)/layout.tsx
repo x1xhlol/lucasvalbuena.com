@@ -8,6 +8,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { MotionProvider } from '@/components/motion-provider'
 import { ConsoleEgg } from '@/components/console-egg'
 import { ScrambleEgg } from '@/components/scramble-egg'
+import { ExtractionEgg } from '@/components/extraction-egg'
 import { LockFamiliar } from '@/components/lock-familiar'
 import { siteConfig } from '@/lib/site'
 
@@ -102,9 +103,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <MotionProvider>{children}</MotionProvider>
+          <MotionProvider>
+            {children}
+          </MotionProvider>
           <ConsoleEgg />
           <ScrambleEgg />
+          <ExtractionEgg />
           <LockFamiliar />
           <Analytics />
         </ThemeProvider>

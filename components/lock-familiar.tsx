@@ -220,7 +220,9 @@ export function LockFamiliar() {
               : 'pointer-events-none'
           }`}
           style={{ x, y, marginLeft: -SIZE / 2, marginTop: -SIZE / 2 }}
-          initial={{ scale: 0, opacity: 0 }}
+          // Starts at roughly the footer lock's size (18px / 80px) so it reads
+          // as the little lock growing, not appearing from nothing
+          initial={{ scale: 0.25, opacity: 0 }}
           animate={
             caught
               ? { scale: [1, 1.2, 0], opacity: [1, 1, 0] }

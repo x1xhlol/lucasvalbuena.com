@@ -1,8 +1,7 @@
 import { Suspense } from 'react'
 import { Hero } from '@/components/hero'
+import { Experience } from '@/components/experience'
 import { Projects } from '@/components/projects'
-import { Skills } from '@/components/skills'
-import { Stack } from '@/components/stack'
 import { Contact } from '@/components/contact'
 import { Navigation } from '@/components/navigation'
 import { BlogSection } from '@/components/blog-section'
@@ -148,10 +147,9 @@ export default function Page() {
         <Suspense fallback={<div className="h-screen" />}>
           <HeroWithStats />
         </Suspense>
+        <Experience />
         <Projects />
-        <Skills />
-        <Stack />
-        <Suspense fallback={<div className="py-16" />}>
+        <Suspense fallback={null}>
           <LatestPosts />
         </Suspense>
         <Contact />

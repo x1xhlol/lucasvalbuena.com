@@ -3,6 +3,8 @@
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
+/* Frosted surfaces go solid for users who ask for less transparency */
+@custom-variant reduce-transparency (@media (prefers-reduced-transparency: reduce));
 
 :root {
   --background: oklch(0.99 0 0);
@@ -159,7 +161,13 @@
   }
 
   .animate-navbar-entry,
-  .animate-link-entry {
+  .animate-link-entry,
+  .animate-caret-blink {
+    animation: none;
+  }
+
+  .animate-rise-entry {
+    opacity: 1;
     animation: none;
   }
 
@@ -181,6 +189,23 @@
   }
 }
 
+
+@keyframes caret-blink {
+
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-caret-blink {
+  animation: caret-blink 1.06s steps(1, end) infinite;
+}
 
 @keyframes navbar-entry {
   from {
@@ -215,25 +240,53 @@
   animation: link-entry 0.25s var(--ease-out) forwards;
 }
 
+/* Content entrance: rises from below (nav drops from above), staggered
+   via --rise-delay. Used by the hero and the 404 page. */
+@keyframes rise-entry {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise-entry {
+  opacity: 0;
+  animation: rise-entry 0.3s var(--ease-out) var(--rise-delay, 0ms) forwards;
+}
+
 .prose-custom {
   color: var(--foreground);
   font-size: 1rem;
-  line-height: 1.8;
+  line-height: 1.75;
+}
+
+/* Headings get a lot of space above and little below, so each one reads as
+   attached to the section it opens rather than floating between two. */
+.prose-custom h1,
+.prose-custom h2,
+.prose-custom h3 {
+  scroll-margin-top: 6rem;
+  text-wrap: balance;
 }
 
 .prose-custom h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-top: 2.5rem;
-  margin-bottom: 1rem;
-  letter-spacing: -0.025em;
-  line-height: 1.3;
+  font-size: 1.625rem;
+  font-weight: 600;
+  margin-top: 3rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 .prose-custom h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-top: 2.5rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+  margin-top: 2.75rem;
   margin-bottom: 0.75rem;
   letter-spacing: -0.02em;
   line-height: 1.3;
@@ -244,19 +297,27 @@
   font-weight: 600;
   margin-top: 2rem;
   margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
   line-height: 1.4;
+}
+
+.prose-custom h2 + p,
+.prose-custom h3 + p {
+  margin-top: 0;
 }
 
 .prose-custom p {
   margin-bottom: 1.25rem;
+  text-wrap: pretty;
 }
 
+/* Matches the underline treatment used everywhere else on the site */
 .prose-custom a {
   color: var(--foreground);
   text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--border);
-  transition: text-decoration-color 0.2s;
+  text-underline-offset: 5px;
+  text-decoration-color: color-mix(in oklch, var(--muted-foreground) 65%, transparent);
+  transition: text-decoration-color 0.15s;
 }
 
 .prose-custom a:hover {
@@ -284,28 +345,32 @@
 .prose-custom blockquote {
   border-left: 2px solid var(--border);
   padding-left: 1.25rem;
-  margin: 1.5rem 0;
+  margin: 1.75rem 0;
   color: var(--muted-foreground);
-  font-style: italic;
 }
 
+/* Code blocks break the measure and run to the edge of the column, so long
+   lines scroll instead of forcing the prose wider. */
 .prose-custom pre {
   background: var(--muted);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.25rem;
+  padding: 1rem 1.125rem;
   overflow-x: auto;
-  margin: 1.5rem 0;
-  font-size: 0.875rem;
-  line-height: 1.6;
+  margin: 1.75rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  tab-size: 2;
 }
 
 .prose-custom code {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 0.875rem;
+  font-size: 0.85em;
   background: var(--muted);
-  padding: 0.15rem 0.4rem;
+  padding: 0.15rem 0.35rem;
   border-radius: calc(var(--radius) - 4px);
+  /* Keeps a long identifier from pushing the paragraph sideways on mobile */
+  overflow-wrap: break-word;
 }
 
 .prose-custom pre code {

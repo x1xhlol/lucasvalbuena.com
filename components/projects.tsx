@@ -24,6 +24,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { EASE_OUT } from '@/lib/motion'
 import { formatGithubThousands } from '@/lib/github-api'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { Section } from '@/components/section'
 import { useEffect, useRef, useState } from 'react'
 
 // Shared-element morph between a project row and its details panel
@@ -39,7 +40,6 @@ const contentFade = {
 
 interface Project {
   title: string
-  subtitle: string
   description: string
   fullDescription: string
   image?: string
@@ -174,10 +174,7 @@ function ProjectDetails({
       )}
 
       <div className="p-5 sm:p-7">
-        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.18em]">
-          {project.subtitle}
-        </p>
-        <Title className="mt-2 text-[17px] sm:text-lg font-semibold tracking-tight leading-snug text-foreground">
+        <Title className="text-[17px] sm:text-lg font-semibold tracking-tight leading-snug text-foreground">
           {project.title}
         </Title>
         <Description className="mt-2.5 sm:mt-3 text-sm sm:text-[15px] leading-relaxed text-foreground/85">
@@ -309,9 +306,8 @@ export function Projects() {
   const projects: Project[] = [
     {
       title: 'System Prompts and Models of AI Tools',
-      subtitle: 'AI Research / Open Source',
-      description: 'Reverse-engineered system prompts from major AI coding assistants including v0, Cursor, and Windsurf.',
-      fullDescription: 'This repository contains reverse-engineered system prompts from major AI coding assistants. I extract, document, and analyze the internal instructions that tools like v0, Cursor, Manus, and Windsurf use to guide their LLMs. The goal is transparency: developers can understand how these tools work and improve their own prompt engineering.',
+      description: 'Reverse-engineered system prompts from v0, Cursor, Windsurf, and other AI coding tools.',
+      fullDescription: 'I pull the system prompts out of AI coding assistants and write them up here. Tools like v0, Cursor, Manus, and Windsurf all ship hidden instructions that shape everything their model does, and you can read all of them in this repo.',
       image: 'https://xobhe5j5syssmps0.public.blob.vercel-storage.com/Screenshot%202026-01-07%20152543.png',
       stats: repoStats['x1xhlol/system-prompts-and-models-of-ai-tools'] ?? null,
       links: {
@@ -321,9 +317,8 @@ export function Projects() {
     },
     {
       title: 'ZeroLeaks',
-      subtitle: 'Cybersecurity / SaaS',
-      description: 'Security testing platform for LLM applications to identify prompt extraction vulnerabilities.',
-      fullDescription: 'ZeroLeaks is a security platform built to help companies test their LLM deployments. It simulates prompt injection and extraction attacks to identify if system prompts can be leaked. The platform provides detailed reports and remediation strategies to harden AI applications against these attack vectors.',
+      description: 'Tests LLM apps for prompt injection and system-prompt leaks.',
+      fullDescription: 'A security platform for companies running LLMs in production. It attacks your deployment the way a real attacker would, with prompt injection and extraction, then reports which parts of your system prompt came back out and how to close the gap.',
       image: '/projects/zeroleaks.png',
       links: {
         github: 'https://github.com/ZeroLeaks/zeroleaks',
@@ -333,9 +328,8 @@ export function Projects() {
     },
     {
       title: 'Zero Calendar',
-      subtitle: 'Productivity',
-      description: 'AI-powered calendar with natural language event creation and Google Calendar sync.',
-      fullDescription: 'Zero Calendar is an open-source scheduling tool. Instead of clicking through date pickers, you type natural language like "lunch with Alex next Tuesday at noon" and it parses everything automatically. It syncs with Google Calendar and supports recurring events.',
+      description: 'Open-source calendar that turns a plain sentence into an event.',
+      fullDescription: 'An open-source calendar. Instead of clicking through date pickers, you type "lunch with Alex next Tuesday at noon" and it creates the event. It syncs with Google Calendar and handles recurring events.',
       image: '/projects/zero-calendar.png',
       stats: repoStats['x1xhlol/zero-calendar'] ?? null,
       links: {
@@ -345,9 +339,8 @@ export function Projects() {
     },
     {
       title: 'Better-Clawd',
-      subtitle: 'Developer Tools / CLI',
-      description: 'A faster, telemetry-free Claude Code fork with OpenAI, OpenRouter, and Anthropic support.',
-      fullDescription: 'Better-Clawd is an independent Claude Code fork focused on performance, provider flexibility, and local-first behavior. It keeps the original CLI experience that worked, removes telemetry, reduces vendor lock-in, and adds support for OpenAI, OpenRouter, and Anthropic without turning setup into a science project.',
+      description: 'Claude Code fork with no telemetry and a choice of model providers.',
+      fullDescription: 'An independent Claude Code fork. It keeps the CLI that already worked, strips out the telemetry, and runs against OpenAI, OpenRouter, or Anthropic so you are not locked to one provider.',
       image: '/projects/better-clawd-terminal.png',
       stats: repoStats['x1xhlol/better-clawd'] ?? null,
       links: {
@@ -360,50 +353,44 @@ export function Projects() {
   const activeProject = activeIndex === null ? null : projects[activeIndex]
 
   return (
-    <section
-      id="projects"
-      data-nosnippet=""
-      className="relative pt-10 pb-10 md:pb-12"
-    >
-      <div className="mx-auto max-w-5xl px-6 md:px-12 relative z-10">
-        <div className="max-w-2xl mx-auto space-y-6 md:space-y-7">
-          <h2 className="text-sm md:text-base font-medium text-foreground">
-            Projects
-          </h2>
-
-          <div className="flex flex-col">
-            {projects.map((project, index) => (
-              <motion.button
-                key={project.title}
-                layoutId={`project-card-${index}`}
-                transition={MORPH}
-                style={{ borderRadius: 8 }}
-                type="button"
-                aria-haspopup="dialog"
-                onClick={() => {
-                  setActiveIndex(index)
-                  setDetailsOpen(true)
-                }}
-                className="group relative w-full text-left cursor-pointer py-2 -mx-2 px-2 rounded-md transition-colors duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
-              >
-                <div className="flex items-baseline gap-1.5 leading-snug">
+    <>
+      <Section id="projects" label="Projects" labelClassName="lg:pt-2">
+        <div className="flex flex-col">
+          {projects.map((project, index) => (
+            <motion.button
+              key={project.title}
+              layoutId={`project-card-${index}`}
+              transition={MORPH}
+              style={{ borderRadius: 8 }}
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => {
+                setActiveIndex(index)
+                setDetailsOpen(true)
+              }}
+              className="group relative w-full text-left cursor-pointer py-2 -mx-2 px-2 rounded-md transition-colors duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+            >
+              <div className="flex items-center gap-1.5 leading-snug">
+                {/* Inline on desktop; below sm the description drops to its own
+                    line rather than clamping to a couple of useless characters */}
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-1.5">
                   <motion.span
                     layoutId={`project-title-${index}`}
                     transition={MORPH}
-                    className="text-sm font-medium text-foreground shrink-0"
+                    className="text-sm font-medium text-foreground sm:shrink-0"
                   >
                     {project.title}
                   </motion.span>
                   <span className="text-sm text-muted-foreground line-clamp-1">
                     {project.description}
                   </span>
-                  <Plus className="h-3 w-3 text-muted-foreground/60 group-hover:text-foreground transition-[color,opacity,transform] duration-150 ease-out shrink-0 ml-auto self-center opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 pointer-coarse:opacity-100 pointer-coarse:scale-100" />
                 </div>
-              </motion.button>
-            ))}
-          </div>
+                <Plus className="h-3 w-3 text-muted-foreground/60 group-hover:text-foreground transition-[color,opacity,transform] duration-150 ease-out shrink-0 self-center opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 pointer-coarse:opacity-100 pointer-coarse:scale-100" />
+              </div>
+            </motion.button>
+          ))}
         </div>
-      </div>
+      </Section>
 
       <AnimatePresence>
         {desktopPanelOpen && activeProject && activeIndex !== null && (
@@ -433,16 +420,10 @@ export function Projects() {
                 className="pointer-events-auto relative w-full max-w-xl overflow-hidden border border-border bg-background shadow-xl outline-none"
               >
                 <div className="max-h-[85dvh] overflow-y-auto custom-scrollbar overscroll-contain p-6 sm:p-7">
-                  <motion.p
-                    {...contentFade}
-                    className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.18em]"
-                  >
-                    {activeProject.subtitle}
-                  </motion.p>
                   <motion.h2
                     layoutId={`project-title-${activeIndex}`}
                     transition={MORPH}
-                    className="mt-2 w-fit text-[17px] font-semibold tracking-tight leading-snug text-foreground"
+                    className="w-fit text-[17px] font-semibold tracking-tight leading-snug text-foreground"
                   >
                     {activeProject.title}
                   </motion.h2>
@@ -547,6 +528,6 @@ export function Projects() {
           </DialogClose>
         </DialogContent>
       </Dialog>
-    </section>
+    </>
   )
 }

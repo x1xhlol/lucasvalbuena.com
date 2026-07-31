@@ -18,7 +18,8 @@ export function ConsoleEgg() {
         '%c…wait. If you can read this, you already extracted it.\n' +
         'Nice technique — I would have done the same.\n\n' +
         'Full leak: curl -i /api/system-prompt\n' +
-        'P.S. try typing "leak" anywhere on the page.\n\n' +
+        '(or just type "curl" on the page and watch it happen)\n\n' +
+        'P.S. typing "leak" does something too.\n\n' +
         '%c   ▄██████▄\n' +
         '  ██      ██\n' +
         '  ██      ██\n' +

@@ -8,6 +8,11 @@ import type { BlogPost } from '@/components/blog-section'
 export const metadata: Metadata = {
   title: 'Blog | Lucas Valbuena',
   description: 'Thoughts on AI, open source, security, and web development.',
+  // Without this the route inherits canonical: '/' from the root layout and
+  // declares itself a duplicate of the home page.
+  alternates: {
+    canonical: '/blog',
+  },
 }
 
 export const dynamic = 'force-dynamic'
@@ -59,9 +64,9 @@ export default async function BlogPage() {
                 <Link
                   key={post.id}
                   href={`/blog/${post.slug}`}
-                  className="group flex items-baseline justify-between gap-4 py-4 transition-colors"
+                  className="group flex items-baseline justify-between gap-4 py-4 -mx-3 px-3 rounded-md transition-colors duration-150 hover:bg-muted/40"
                 >
-                  <span className="text-sm font-medium text-foreground group-hover:text-muted-foreground transition-colors truncate">
+                  <span className="text-sm font-medium text-foreground truncate">
                     {post.title}
                   </span>
                   {post.publishedAt && (

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import type { Photo, PhotoMetadata } from '@/lib/photos'
 import { EASE_OUT } from '@/lib/motion'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface PhotoLightboxProps {
   photos: Photo[]
@@ -141,6 +142,7 @@ export function PhotoLightbox({
   const metadataTouchStart = useRef<{ y: number; t: number } | null>(null)
   const swipeTouchStart = useRef<{ x: number; y: number; t: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const availableFields = METADATA_FIELDS.filter((f) => {
     const val = photo.metadata[f.key]
     return val !== undefined && val !== null && val !== ''
@@ -432,7 +434,10 @@ export function PhotoLightbox({
               className="max-w-full max-h-full w-auto h-auto object-contain select-none"
               style={{
                 transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-                transition: isDragging.current ? 'none' : 'transform 0.2s ease-out',
+                transition:
+                  isDragging.current || reducedMotion
+                    ? 'none'
+                    : 'transform 0.2s var(--ease-out)',
                 cursor: isZoomed ? (isDragging.current ? 'grabbing' : 'grab') : 'zoom-in',
               }}
               onClick={(e) => e.stopPropagation()}

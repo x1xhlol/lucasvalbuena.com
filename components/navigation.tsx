@@ -5,19 +5,15 @@ import { usePathname } from 'next/navigation'
 import { ArrowUpRight, Menu } from 'lucide-react'
 import { Drawer } from 'vaul'
 
-// #blog is deliberately not observed: the /blog page link sits after Contact
-// in the row, and highlighting it mid-scroll would slide the pill past Contact
-// and back. Stack stays lit until Contact takes over.
-const SECTION_IDS = ['home', 'projects', 'skills', 'stack', 'contact']
-
 // Matches rounded-lg on the nav links (--radius + 4px)
 const INDICATOR_HIDDEN_CLIP = 'inset(0 100% 0 0 round 12px)'
 
 export function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState('home')
   const pathname = usePathname()
+  // The home page carries no desktop chrome: its section links live in the page
+  // itself. Interior pages keep the bar, since it is their only way back.
   const isHome = pathname === '/'
   const desktopRowRef = useRef<HTMLDivElement>(null)
   const indicatorRef = useRef<HTMLDivElement>(null)
@@ -32,49 +28,14 @@ export function Navigation() {
   }, [])
 
   useEffect(() => {
-    if (!isHome) return
-
-    const sections = SECTION_IDS.map((id) => document.getElementById(id)).filter(
-      (el): el is HTMLElement => el !== null,
-    )
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) setActiveSection(entry.target.id)
-        })
-      },
-      // Narrow band around the viewport middle so only one section matches at a time
-      { rootMargin: '-45% 0px -50% 0px' },
-    )
-    sections.forEach((el) => observer.observe(el))
-
-    const handleScroll = () => {
-      // The last section is too short to ever reach the middle band
-      const atBottom =
-        window.innerHeight + window.scrollY >=
-        document.documentElement.scrollHeight - 8
-      if (atBottom) setActiveSection('contact')
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll()
-
-    return () => {
-      observer.disconnect()
-      window.removeEventListener('scroll', handleScroll)
-    }
-  }, [isHome])
-
-  useEffect(() => {
     setIsMobileMenuOpen(false)
   }, [pathname])
 
   const prefix = isHome ? '' : '/'
   const sectionLinks = [
     { href: `${prefix}#home`, label: 'Home' },
+    { href: `${prefix}#experience`, label: 'Experience' },
     { href: `${prefix}#projects`, label: 'Projects' },
-    { href: `${prefix}#skills`, label: 'Skills' },
-    { href: `${prefix}#stack`, label: 'Stack' },
     { href: `${prefix}#contact`, label: 'Contact' },
   ]
   const pageLinks = [
@@ -83,9 +44,8 @@ export function Navigation() {
   ]
   const navLinks = [...sectionLinks, ...pageLinks]
 
-  const activeHref = isHome
-    ? `#${activeSection}`
-    : (navLinks.find((link) => pathname.startsWith(link.href))?.href ?? null)
+  const activeHref =
+    navLinks.find((link) => pathname.startsWith(link.href))?.href ?? null
 
   // Slide the clipped pill to the active link. The first placement (and any
   // resize/font reflow) snaps without animating; only active-link changes slide.
@@ -130,14 +90,20 @@ export function Navigation() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 animate-navbar-entry ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-200 ease-out animate-navbar-entry ${
+        isHome ? 'md:hidden' : ''
+      } ${
         isScrolled
-          ? 'bg-background/70 backdrop-blur-xl border-b border-border/50'
+          ? 'bg-background/70 backdrop-blur-xl reduce-transparency:bg-background reduce-transparency:backdrop-blur-none border-b border-border/50'
           : 'md:bg-transparent'
       }`}
     >
       <div className="mx-auto max-w-5xl px-6 md:px-12">
         <div className="flex items-center justify-end md:justify-center h-14">
+          {/* Home has no desktop bar at all, so this row would only ever be
+              display:none there. Not rendering it keeps the dead links out of
+              the markup. */}
+          {!isHome && (
           <div
             ref={desktopRowRef}
             className="relative hidden md:flex items-center gap-0.5"
@@ -182,6 +148,7 @@ export function Navigation() {
               ))}
             </div>
           </div>
+          )}
 
           <Drawer.Root open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <Drawer.Trigger asChild>

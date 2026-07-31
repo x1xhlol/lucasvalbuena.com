@@ -69,6 +69,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.185.1",
     "vaul": "^0.9.9",
     "zod": "3.25.76"
   },
@@ -77,6 +78,7 @@
     "@types/node": "^22.19.17",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.185.1",
     "@typescript/native-preview": "^7.0.0-dev.20260707.2",
     "postcss": "^8.5.10",
     "tailwindcss": "^4.2.4",

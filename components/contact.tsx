@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { ThemeSwitcher } from '@/components/ui/theme-switcher'
 import { PixelLock } from '@/components/pixel-lock'
+import { Section } from '@/components/section'
 import { AnimatePresence, motion } from 'framer-motion'
 import { EASE_OUT as ease } from '@/lib/motion'
 const themes = ['light', 'dark', 'system'] as const
@@ -113,69 +115,61 @@ export function Contact() {
   const activeTheme = isThemeName(theme) ? theme : 'system'
 
   return (
-    <section
-      id="contact"
-      data-nosnippet=""
-      className="relative pt-4 pb-10 md:pt-6 md:pb-12"
-    >
-      <div className="mx-auto max-w-5xl px-6 md:px-12 relative z-10">
-        <div className="max-w-2xl mx-auto space-y-6 md:space-y-7">
-          <h2 className="text-sm md:text-base font-medium text-foreground">
-            Elsewhere
-          </h2>
-
-          <div className="flex flex-col">
-            <p className="text-sm text-foreground/90 leading-relaxed max-w-xl">
-              Email me at <CopyEmail email="lucasvalbuena@pm.me" /> or find me on{' '}
-              <a
-                href="https://github.com/x1xhlol"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
-              >
-                GitHub
-              </a>,{' '}
-              <a
-                href="https://x.com/Lucknite"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
-              >
-                X
-              </a>{' '}
-              and{' '}
-              <a
-                href="https://linkedin.com/in/lucknite"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
-              >
-                LinkedIn
-              </a>
-              .
-            </p>
-          </div>
-
-          <footer className="pt-14 mt-2 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2.5 h-8 order-2 md:order-1">
-              <PixelLock
-                size={18}
-                greet
-                className="text-muted-foreground/70 hover:text-foreground"
-              />
-              <p className="text-xs text-muted-foreground leading-none">
-                © {new Date().getFullYear()} Lucas Valbuena
-              </p>
-            </div>
-            <div className="order-1 md:order-2">
-              <ThemeSwitcher
-                value={activeTheme}
-                onChange={(v) => setTheme(v)}
-              />
-            </div>
-          </footer>
-        </div>
+    <Section id="contact" label="Elsewhere">
+      <div className="flex flex-col">
+        <p className="text-sm text-foreground/90 leading-relaxed max-w-xl">
+          Email me at <CopyEmail email="lucasvalbuena@pm.me" /> or find me on{' '}
+          <a
+            href="https://github.com/x1xhlol"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
+          >
+            GitHub
+          </a>,{' '}
+          <a
+            href="https://x.com/Lucknite"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
+          >
+            X
+          </a>{' '}
+          and{' '}
+          <a
+            href="https://linkedin.com/in/lucknite"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
+          >
+            LinkedIn
+          </a>
+          . I also keep a{' '}
+          <Link
+            href="/photos"
+            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
+          >
+            page of photos
+          </Link>
+          .
+        </p>
       </div>
-    </section>
+
+      <footer className="pt-12 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-2.5 h-8 order-2 md:order-1">
+          <PixelLock
+            size={18}
+            greet
+            className="text-muted-foreground/70 hover:text-foreground"
+          />
+          <p className="text-xs text-muted-foreground leading-none">
+            © {new Date().getFullYear()} Lucas Valbuena
+          </p>
+        </div>
+        <div className="order-1 md:order-2">
+          <ThemeSwitcher value={activeTheme} onChange={(v) => setTheme(v)} />
+        </div>
+      </footer>
+    </Section>
   )
 }

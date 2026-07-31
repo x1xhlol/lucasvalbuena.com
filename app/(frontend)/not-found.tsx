@@ -1,11 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, Home } from 'lucide-react'
-import { motion } from 'framer-motion'
-import { EASE_OUT } from '@/lib/motion'
-import { PixelLock } from '@/components/pixel-lock'
+import dynamic from 'next/dynamic'
+import { useTheme } from 'next-themes'
+import { Navigation } from '@/components/navigation'
 import { useEffect, useState } from 'react'
+
+const DitheredObject = dynamic(
+  () => import('@/components/canvasui/DitheredObject'),
+  { ssr: false },
+)
 
 const glitchChars = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`0123456789'
 
@@ -13,6 +17,9 @@ function useGlitchText(target: string, duration = 500) {
   const [text, setText] = useState(target)
 
   useEffect(() => {
+    // Rapid character flicker is exactly what reduced-motion users opt out of
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
     const steps = 6
     const interval = duration / steps
     let step = 0
@@ -44,76 +51,71 @@ function useGlitchText(target: string, duration = 500) {
   return text
 }
 
+const inlineLinkClass =
+  'underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 rounded-sm'
+
 export default function NotFound() {
   const glitched = useGlitchText('404')
+  const { resolvedTheme } = useTheme()
+  const [reduceMotion, setReduceMotion] = useState(false)
+
+  useEffect(() => {
+    setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  }, [])
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 grid-pattern grid-fade pointer-events-none" />
+    <div className="relative min-h-dvh">
+      <Navigation />
+      <main className="flex min-h-dvh items-center">
+        <section className="mx-auto w-full max-w-5xl px-6 md:px-12 pb-14">
+          <div className="max-w-2xl mx-auto space-y-7 md:space-y-8">
+            <h1
+              aria-label="404, page not found"
+              className="animate-rise-entry font-geist-pixel text-2xl md:text-[32px] font-medium tracking-tight leading-[1.15]"
+            >
+              {glitched}
+            </h1>
 
-      <div className="relative z-10 mx-auto max-w-lg px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: EASE_OUT }}
-          className="mb-8"
-        >
-          <div className="mb-6 flex justify-center text-foreground">
-            <PixelLock size={44} />
+            <p
+              className="animate-rise-entry text-[15px] md:text-base text-foreground/90 leading-relaxed max-w-xl"
+              style={{ '--rise-delay': '40ms' } as React.CSSProperties}
+            >
+              This page doesn&apos;t exist or has been moved. Head{' '}
+              <Link href="/" className={inlineLinkClass}>
+                back home
+              </Link>{' '}
+              or{' '}
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className={inlineLinkClass}
+              >
+                go back
+              </button>
+              .
+            </p>
+
+            <div
+              aria-hidden
+              className="animate-rise-entry"
+              style={{ '--rise-delay': '80ms' } as React.CSSProperties}
+            >
+              <DitheredObject
+                src="/404-key.svg"
+                className="h-52 md:h-60 max-w-xl cursor-grab active:cursor-grabbing"
+                gridSize={3}
+                scale={3.2}
+                invert={resolvedTheme === 'dark'}
+                highlight="#a3a3a3"
+                orbit
+                zoom={false}
+                floatIntensity={reduceMotion ? 0 : 2}
+                rotationIntensity={reduceMotion ? 0 : 1}
+              />
+            </div>
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-background/80 backdrop-blur-sm mb-8">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-muted-foreground/40" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-muted-foreground" />
-            </span>
-            <span className="font-mono text-[11px] text-muted-foreground tracking-wider uppercase">
-              Page not found
-            </span>
-          </div>
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.04, ease: EASE_OUT }}
-          className="font-mono text-5xl sm:text-6xl md:text-7xl font-bold tracking-tighter mb-4"
-        >
-          {glitched}
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.08, ease: EASE_OUT }}
-          className="text-sm md:text-base text-muted-foreground mb-10 max-w-sm mx-auto leading-relaxed"
-        >
-          The page you&#39;re looking for doesn&#39;t exist or has been moved.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.12, ease: EASE_OUT }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3"
-        >
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-medium rounded-lg bg-foreground text-background hover:bg-foreground/90 transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.98]"
-          >
-            <Home className="h-3.5 w-3.5" />
-            Go home
-          </Link>
-          <button
-            onClick={() => {
-              if (typeof window !== 'undefined') window.history.back()
-            }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted/30 hover:border-foreground/20 transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.98]"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Go back
-          </button>
-        </motion.div>
-      </div>
+        </section>
+      </main>
     </div>
   )
 }

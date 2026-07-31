@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Section } from '@/components/section'
 
 const OpenAIIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -157,28 +158,34 @@ export function Hero({
   const systemPrompts = repoStats ?? initialStats
 
   return (
-    <section
-      id="home"
-      data-nosnippet=""
-      className="relative pt-28 pb-10 md:pt-32 md:pb-14"
-    >
-      <div className="mx-auto max-w-5xl px-6 md:px-12 relative z-10">
-        <div className="max-w-2xl mx-auto">
-        <div className="space-y-7 md:space-y-8">
+    <Section id="home" className="pt-28 pb-8 md:pt-24 md:pb-10">
+      <div className="space-y-7 md:space-y-8">
           <h1
             aria-label="Lucas Valbuena"
-            className="font-geist-pixel text-2xl md:text-[32px] font-medium tracking-tight leading-[1.15]"
+            className="animate-rise-entry font-geist-pixel text-2xl md:text-[32px] font-medium tracking-tight leading-[1.15]"
           >
             <ScrambledName text="Lucas Valbuena" />
           </h1>
 
-          <div className="space-y-4">
+          <div
+            className="animate-rise-entry space-y-4"
+            style={{ '--rise-delay': '40ms' } as React.CSSProperties}
+          >
             <p className="text-[15px] md:text-base text-foreground/90 leading-relaxed max-w-xl">
               I reverse-engineer AI tools and build security products. 17, based
-              in Spain.
+              in Spain. I work at{' '}
+              <a
+                href="https://orchid.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors"
+              >
+                Orchid
+              </a>{' '}
+              (YC P25) as an AI agent and product intern.
             </p>
             <p className="text-[15px] md:text-base text-foreground/90 leading-relaxed max-w-xl">
-              I run{' '}
+              I founded{' '}
               <a
                 href="https://zeroleaks.ai"
                 target="_blank"
@@ -186,10 +193,8 @@ export function Hero({
                 className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors"
               >
                 ZeroLeaks
-              </a>, which tests LLM apps for prompt injection and system-prompt extraction.
-            </p>
-            <p className="text-[15px] md:text-base text-foreground/90 leading-relaxed max-w-xl">
-              I maintain{' '}
+              </a>
+              , and created and maintain{' '}
               <a
                 href="https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools"
                 target="_blank"
@@ -197,12 +202,19 @@ export function Hero({
                 className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors"
               >
                 system-prompts-and-models-of-ai-tools
-              </a>
-              {' '}({systemPrompts.stars} stars).
+              </a>{' '}
+              {/* The star count is the proof; don't let it break across lines */}
+              <span className="whitespace-nowrap">
+                ({systemPrompts.stars} stars)
+              </span>
+              .
             </p>
           </div>
 
-          <div className="pt-1">
+          <div
+            className="animate-rise-entry pt-1"
+            style={{ '--rise-delay': '80ms' } as React.CSSProperties}
+          >
             <a
               href="https://x.com/Lucknite/status/2012065359717708279"
               target="_blank"
@@ -212,15 +224,18 @@ export function Hero({
               <OpenAIIcon className="h-4 w-4 shrink-0" />
               <span>
                 <span className="underline underline-offset-[5px] decoration-muted-foreground/65 group-hover:decoration-foreground transition-colors">
-                  Jailbroke GPT-5
+                  GPT-5 Bio Bug Bounty
                 </span>
-                <span className="text-muted-foreground"> · $6,000 bounty</span>
+                <span className="text-muted-foreground"> ($6,000 award)</span>
               </span>
             </a>
           </div>
 
           <TooltipProvider delayDuration={400} skipDelayDuration={300}>
-            <div className="flex items-center gap-1 pt-1 -ml-2">
+            <div
+              className="animate-rise-entry flex items-center gap-1 pt-1 -ml-2"
+              style={{ '--rise-delay': '120ms' } as React.CSSProperties}
+            >
               <Tooltip>
                 <TooltipTrigger asChild>
                   <a
@@ -267,9 +282,7 @@ export function Hero({
               <CvLink />
             </div>
           </TooltipProvider>
-        </div>
-        </div>
       </div>
-    </section>
+    </Section>
   )
 }
