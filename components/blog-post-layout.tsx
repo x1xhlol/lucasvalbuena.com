@@ -3,6 +3,8 @@ import Image from 'next/image'
 import { format } from 'date-fns'
 import { ArrowLeft } from 'lucide-react'
 import { ViewTransition } from '@/lib/view-transition'
+import { NewsletterForm } from '@/components/newsletter-form'
+import { NEWSLETTER_ENABLED } from '@/lib/newsletter/config'
 
 export type AdjacentPost = {
   title: string
@@ -96,6 +98,7 @@ export function BlogPostLayout({
         </div>
 
         <footer className="mt-16 border-t border-dashed border-border pt-8">
+          {NEWSLETTER_ENABLED && <NewsletterForm className="mb-12" />}
           {(newerPost || olderPost) && (
             <nav aria-label="Adjacent posts" className="mb-10 grid grid-cols-2 gap-6">
               <div>

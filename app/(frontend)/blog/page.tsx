@@ -5,6 +5,8 @@ import { format } from 'date-fns'
 import type { Metadata } from 'next'
 import type { BlogPost } from '@/components/blog-section'
 import { ViewTransition } from '@/lib/view-transition'
+import { NewsletterForm } from '@/components/newsletter-form'
+import { NEWSLETTER_ENABLED } from '@/lib/newsletter/config'
 
 export const metadata: Metadata = {
   title: 'Blog | Lucas Valbuena',
@@ -92,6 +94,12 @@ export default async function BlogPage() {
                   )}
                 </Link>
               ))}
+            </div>
+          )}
+
+          {NEWSLETTER_ENABLED && (
+            <div className="mt-12 border-t border-dashed border-border pt-8">
+              <NewsletterForm />
             </div>
           )}
         </div>

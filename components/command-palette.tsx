@@ -8,6 +8,8 @@ import { format } from 'date-fns'
 import { ArrowUpRight, Check, Search, X } from 'lucide-react'
 import { fuzzyMatch } from '@/lib/fuzzy'
 import { ASK_ENABLED, MAX_QUESTION_LENGTH } from '@/lib/ask/protocol'
+import { OPEN_PROJECT_EVENT, PROJECT_PARAM, PROJECTS } from '@/lib/projects'
+import { NEWSLETTER_ENABLED } from '@/lib/newsletter/config'
 
 const EMAIL = 'lucasvalbuena@pm.me'
 
@@ -18,9 +20,13 @@ export function openCommandPalette() {
   window.dispatchEvent(new Event(OPEN_EVENT))
 }
 
-type PaletteGroup = 'Pages' | 'Sections' | 'Writing' | 'Actions' | 'Theme' | 'Ask'
+type PaletteGroup = 'Pages' | 'Sections' | 'Projects' | 'Writing' | 'Actions' | 'Theme' | 'Ask'
 
-const GROUP_ORDER: Record<PaletteGroup, number> = { Pages: 0, Sections: 1, Writing: 2, Actions: 3, Theme: 4, Ask: 5 }
+const GROUP_ORDER: Record<PaletteGroup, number> = { Pages: 0, Sections: 1, Projects: 2, Writing: 3, Actions: 4, Theme: 5, Ask: 6 }
+
+// Long enough for the palette to close and hand focus back before the
+// project panel takes it
+const PROJECT_OPEN_DELAY = 200
 
 interface PaletteItem {
   id: string
@@ -190,6 +196,22 @@ export function CommandPalette() {
       { id: 'section-projects', label: 'Projects', group: 'Sections', meta: '#projects', verb: 'Jump to', keywords: 'system prompts zeroleaks pare', perform: () => goToSection('projects') },
       { id: 'section-contact', label: 'Contact', group: 'Sections', meta: '#contact', verb: 'Jump to', keywords: 'email', perform: () => goToSection('contact') },
     ]
+    const projectItems: PaletteItem[] = PROJECTS.map((project) => ({
+      id: `project-${project.slug}`,
+      label: project.title,
+      group: 'Projects' as const,
+      meta: project.links.demo ? new URL(project.links.demo).hostname : undefined,
+      verb: 'Open',
+      keywords: project.description,
+      perform: () => {
+        close()
+        if (pathname === '/') {
+          setTimeout(() => window.dispatchEvent(new CustomEvent(OPEN_PROJECT_EVENT, { detail: project.slug })), PROJECT_OPEN_DELAY)
+        } else {
+          router.push(`/?${PROJECT_PARAM}=${project.slug}`)
+        }
+      },
+    }))
     const postItems: PaletteItem[] = (posts ?? []).map((post) => ({
       id: `post-${post.slug}`,
       label: post.title,
@@ -224,6 +246,17 @@ export function CommandPalette() {
           return 'copied' as const
         },
       },
+      ...(NEWSLETTER_ENABLED
+        ? [{
+            id: 'action-subscribe',
+            label: 'Subscribe by email',
+            group: 'Actions' as const,
+            meta: 'New posts',
+            verb: 'Open',
+            keywords: 'newsletter email updates rss follow',
+            perform: () => navigate('/blog#newsletter'),
+          }]
+        : []),
       {
         id: 'action-github',
         label: 'GitHub',
@@ -241,8 +274,8 @@ export function CommandPalette() {
       { id: 'action-theme-system', label: 'System', group: 'Theme', verb: 'Switch theme', keywords: 'theme appearance mode auto', current: theme === 'system', perform: () => setTheme('system') },
     ]
 
-    return [...pages, ...sections, ...postItems, ...actions, ...themes]
-  }, [posts, navigate, goToSection, theme, setTheme, pathname])
+    return [...pages, ...sections, ...projectItems, ...postItems, ...actions, ...themes]
+  }, [posts, navigate, goToSection, theme, setTheme, pathname, close, router])
 
   const results = useMemo(() => {
     if (query.trim() === '') {
@@ -412,7 +445,7 @@ export function CommandPalette() {
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
       <DialogPrimitive.Portal>
         {/* Opened from a shortcut many times a day, so it appears instantly */}
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px] reduce-transparency:backdrop-blur-none" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[12px] backdrop-saturate-[1.2] reduce-transparency:bg-black/40 reduce-transparency:backdrop-blur-none" />
         <DialogPrimitive.Content
           data-command-palette
           aria-describedby={undefined}
@@ -430,7 +463,7 @@ export function CommandPalette() {
             e.preventDefault()
             if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus({ preventScroll: true })
           }}
-          className="fixed left-1/2 top-[max(1rem,env(safe-area-inset-top))] sm:top-[16dvh] z-50 flex max-h-[calc(100dvh-2rem)] sm:max-h-[70dvh] w-[calc(100%-2rem)] max-w-[34rem] -translate-x-1/2 flex-col overflow-hidden rounded-[20px] border border-border/60 bg-background shadow-overlay outline-none"
+          className="fixed left-1/2 top-[max(1rem,env(safe-area-inset-top))] sm:top-[16dvh] z-50 flex max-h-[calc(100dvh-2rem)] sm:max-h-[70dvh] w-[calc(100%-2rem)] max-w-[34rem] -translate-x-1/2 flex-col overflow-hidden rounded-[24px] bg-panel shadow-panel outline-none"
         >
           <DialogPrimitive.Title className="sr-only">Command palette</DialogPrimitive.Title>
           <div className="relative flex shrink-0 items-center gap-2 border-b border-border/70 pl-5 pr-2">
@@ -516,7 +549,7 @@ export function CommandPalette() {
                       setActiveId(item.id)
                       runItem(item)
                     }}
-                    className="group flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] font-medium text-muted-foreground outline-none aria-selected:bg-muted/60 aria-selected:text-foreground active:bg-muted sm:min-h-10 sm:py-2 sm:text-sm"
+                    className="group flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-[15px] font-medium text-muted-foreground outline-none aria-selected:bg-muted/60 aria-selected:text-foreground active:bg-muted sm:min-h-10 sm:py-2 sm:text-sm"
                   >
                     <span className="min-w-0 flex-1 truncate">
                       {isPending ? 'Copying…' : isCopied ? 'Copied' : <HighlightedLabel label={item.label} indices={indices} />}

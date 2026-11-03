@@ -1,6 +1,6 @@
 'use client'
 
-import { Star, GitFork, ArrowUpRight, Maximize2, X } from 'lucide-react'
+import { Star, GitFork, ArrowUpRight, ChevronRight, Maximize2, X } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -8,24 +8,26 @@ import {
   DialogTitle,
   DialogClose,
 } from '@/components/ui/dialog'
-import Image from 'next/image'
+import Image, { getImageProps } from 'next/image'
+import { track } from '@vercel/analytics'
 import { Drawer } from 'vaul'
 import { AnimatePresence, motion } from 'motion/react'
 import { EASE_OUT, SPRING_MORPH } from '@/lib/motion'
 import { hasCount, type RepoStats } from '@/lib/github-api'
-import { PROJECTS, type ProjectData } from '@/lib/projects'
+import { OPEN_PROJECT_EVENT, PROJECT_PARAM, PROJECTS, type ProjectData } from '@/lib/projects'
+import { ASK_ENABLED } from '@/lib/ask/protocol'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { Section } from '@/components/section'
 import { useEffect, useRef, useState } from 'react'
 
-// Shared-element morph between a project row and its details panel
+// Shared-element morph between a project row and its details
 const MORPH = SPRING_MORPH
 
-// Panel content fades in after the card morph is underway, and drops out
-// quickly before the card shrinks back into the row
+// Details fade in after the morph is underway, and drop out quickly before
+// it shrinks back into the row
 const contentFade = {
   initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.2, delay: 0.1, ease: EASE_OUT } },
+  animate: { opacity: 1, transition: { duration: 0.25, delay: 0.12, ease: EASE_OUT } },
   exit: { opacity: 0, transition: { duration: 0.1, ease: EASE_OUT } },
 } as const
 
@@ -33,138 +35,216 @@ interface Project extends ProjectData {
   stats: RepoStats | null
 }
 
-function ProjectLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group inline-flex min-h-11 items-center gap-[3px] text-[13px] font-medium text-foreground rounded-sm"
-    >
-      <span className="underline underline-offset-[5px] decoration-muted-foreground/65 group-hover:decoration-foreground transition-colors">
-        {children}
-      </span>
-      <ArrowUpRight
-        className="h-[11px] w-[11px] shrink-0 text-muted-foreground/70 transition-[color,transform,translate,scale] duration-150 ease-out group-hover:text-foreground motion-safe:pointer-fine:group-hover:translate-x-[1px] motion-safe:pointer-fine:group-hover:-translate-y-[1px]"
-        aria-hidden
-      />
-    </a>
-  )
-}
+type Enlarge = (image: { src: string; alt: string }) => void
 
-function ProjectImage({ src, alt }: { src: string; alt: string }) {
+const NEW_TAB = { target: '_blank', rel: 'noopener noreferrer' } as const
+
+// A screenshot with the site's 1px image edge, drawn on top so it follows
+// the rounded corners, fading in over its placeholder instead of popping
+function Shot({
+  src,
+  sizes,
+  className = '',
+  position = 'object-left-top',
+}: {
+  src: string
+  sizes: string
+  className?: string
+  position?: string
+}) {
   const [loaded, setLoaded] = useState(false)
-  const [errored, setErrored] = useState(false)
-
-  if (errored) {
-    return (
-      <span className="flex h-full w-full items-center justify-center">
-        <span className="text-muted-foreground font-mono text-xs text-center px-6">
-          [ image unavailable ]
-        </span>
-      </span>
-    )
-  }
-
   return (
-    <span className="relative block h-full w-full">
+    <span className={`relative block shrink-0 overflow-hidden bg-muted ${className}`}>
       <Image
         src={src}
-        alt={alt}
+        alt=""
         fill
-        sizes="(max-width: 640px) 100vw, 576px"
+        sizes={sizes}
         quality={95}
         onLoad={() => setLoaded(true)}
-        onError={() => setErrored(true)}
-        className={`object-contain transition-opacity duration-200 ease-out ${
-          loaded ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`object-cover ${position} transition-opacity duration-200 ease-out ${loaded ? 'opacity-100' : 'opacity-0'}`}
       />
+      <span aria-hidden className="image-outline pointer-events-none absolute inset-0 rounded-[inherit]" />
     </span>
   )
 }
 
-function ProjectFooter({ project }: { project: Project }) {
+// The same text link the Ask cards use, so a project reads the same in both
+function TextLink({
+  href,
+  children,
+  internal = false,
+  onClick,
+}: {
+  href: string
+  children: React.ReactNode
+  internal?: boolean
+  onClick?: () => void
+}) {
   return (
-    <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
-      <div className="flex items-center gap-5">
-        {project.links.demo && (
-          <ProjectLink href={project.links.demo}>Website</ProjectLink>
-        )}
-        {project.links.github && (
-          <ProjectLink href={project.links.github}>Source</ProjectLink>
-        )}
-      </div>
-      {project.links.paper && (
-        <ProjectLink href={project.links.paper}>Paper</ProjectLink>
+    <a
+      href={href}
+      {...(internal ? {} : NEW_TAB)}
+      onClick={onClick}
+      className="group touch-target relative inline-flex items-center gap-[3px] rounded-sm text-[13px] font-medium text-foreground"
+    >
+      <span className="underline underline-offset-[5px] decoration-muted-foreground/65 transition-colors group-hover:decoration-foreground">
+        {children}
+      </span>
+      {!internal && (
+        <ArrowUpRight
+          className="size-[11px] shrink-0 text-muted-foreground/70 transition-[color,translate] duration-150 ease-out group-hover:text-foreground motion-safe:pointer-fine:group-hover:translate-x-px motion-safe:pointer-fine:group-hover:-translate-y-px"
+          aria-hidden
+        />
       )}
-      {project.stats && hasCount(project.stats.stars) && (
-        <div className="flex items-center gap-3.5 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Star className="h-3 w-3" aria-hidden />
-            <span className="tabular-nums">{project.stats.stars}</span>
-            <span className="sr-only">stars</span>
-          </span>
-          {hasCount(project.stats.forks) && (
-            <span className="inline-flex items-center gap-1">
-              <GitFork className="h-3 w-3" aria-hidden />
-              <span className="tabular-nums">{project.stats.forks}</span>
-              <span className="sr-only">forks</span>
-            </span>
-          )}
-        </div>
+    </a>
+  )
+}
+
+function projectLinks(project: Project) {
+  return [
+    project.links.demo && { href: project.links.demo, label: 'Website' },
+    project.links.github && { href: project.links.github, label: 'Source' },
+    project.links.paper && { href: project.links.paper, label: 'Paper' },
+  ].filter(Boolean) as { href: string; label: string }[]
+}
+
+function Links({ project }: { project: Project }) {
+  return (
+    <div className="flex flex-wrap gap-x-5 gap-y-1">
+      {projectLinks(project).map((link) => (
+        <TextLink
+          key={link.href}
+          href={link.href}
+          onClick={() => track('Project link', { project: project.slug, link: link.label })}
+        >
+          {link.label}
+        </TextLink>
+      ))}
+      {ASK_ENABLED && (
+        <TextLink
+          internal
+          href={`/ask?q=${encodeURIComponent(`Tell me about ${project.title}`)}`}
+          onClick={() => track('Project link', { project: project.slug, link: 'Ask' })}
+        >
+          Ask about it
+        </TextLink>
       )}
     </div>
   )
 }
 
-function ProjectDetails({
+// The panel's screenshot goes through next/image, so warming it means asking
+// for the same srcset the panel will request
+const PANEL_SHOT_SIZES = '(max-width: 640px) 100vw, 544px'
+const warmed = new Set<string>()
+function warmPanelShot(project: Project) {
+  if (!project.image || warmed.has(project.image)) return
+  warmed.add(project.image)
+  const { props } = getImageProps({ src: project.image, alt: '', fill: true, sizes: PANEL_SHOT_SIZES, quality: 95 })
+  const img = new window.Image()
+  img.sizes = props.sizes ?? ''
+  if (props.srcSet) img.srcset = props.srcSet
+  img.src = props.src
+}
+
+// A handful of stars undersells a project, so small counts stay off
+function notable(stats: RepoStats | null): stats is RepoStats {
+  if (!stats || !hasCount(stats.stars)) return false
+  return stats.stars.endsWith('k') || Number(stats.stars) >= 50
+}
+
+function Stars({ stats }: { stats: RepoStats | null }) {
+  if (!notable(stats)) return null
+  return (
+    <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-1">
+        <Star className="size-3" aria-hidden />
+        <span className="tabular-nums">{stats.stars}</span>
+        <span className="sr-only">stars</span>
+      </span>
+      {hasCount(stats.forks) && (
+        <span className="inline-flex items-center gap-1">
+          <GitFork className="size-3" aria-hidden />
+          <span className="tabular-nums">{stats.forks}</span>
+          <span className="sr-only">forks</span>
+        </span>
+      )}
+    </span>
+  )
+}
+
+function ShotButton({
   project,
-  Title,
+  onEnlarge,
+  className,
+  sizes,
+  style,
+}: {
+  project: Project
+  onEnlarge: Enlarge
+  className: string
+  sizes: string
+  style?: React.CSSProperties
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`Open ${project.title} image preview`}
+      onClick={() => onEnlarge({ src: project.image!, alt: project.title })}
+      style={style}
+      className={`group/image relative block w-full cursor-zoom-in outline-none ${className}`}
+    >
+      <Shot src={project.image!} sizes={sizes} className="h-full w-full rounded-[inherit]" />
+      <span className="pointer-events-none absolute right-2.5 bottom-2.5 inline-flex size-7 items-center justify-center rounded-full bg-background/85 text-muted-foreground shadow-raised backdrop-blur-sm transition-opacity duration-150 ease-out opacity-0 group-hover/image:opacity-100 group-focus-visible/image:opacity-100 pointer-coarse:opacity-90">
+        <Maximize2 className="size-3" />
+      </span>
+    </button>
+  )
+}
+
+// The details use the Ask card's language: the screenshot inset with
+// concentric corners, quiet type, and text links. Esc or a click outside
+// closes it; the drawer on phones swipes away.
+
+function InsetBody({
+  project,
+  title,
   Description,
+  fade,
   onEnlarge,
 }: {
   project: Project
-  Title: React.ElementType
+  title: React.ReactNode
   Description: React.ElementType
-  onEnlarge: (image: { src: string; alt: string }) => void
+  fade: boolean
+  onEnlarge: Enlarge
 }) {
+  const Fade = fade ? motion.div : 'div'
+  const fadeProps = fade ? contentFade : {}
   return (
     <>
       {project.image && (
-        <div className="relative w-full shrink-0 border-y border-border bg-muted/40">
-          <button
-            type="button"
-            aria-label={`Open ${project.title} image preview`}
-            className="group/image block w-full cursor-zoom-in outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:ring-inset"
-            onClick={() =>
-              onEnlarge({
-                src: project.image!,
-                alt: project.title,
-              })
-            }
-          >
-            <span className="relative block aspect-[16/9] sm:aspect-[16/10] w-full overflow-hidden p-2 sm:p-3">
-              <span className="pointer-events-none absolute bottom-3 right-3 inline-flex size-8 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground backdrop-blur transition-opacity duration-150 opacity-70">
-                <Maximize2 className="size-3.5" />
-              </span>
-              <ProjectImage src={project.image} alt={project.title} />
-            </span>
-          </button>
-        </div>
+        <Fade {...fadeProps} className="p-2.5">
+          <ShotButton
+            project={project}
+            onEnlarge={onEnlarge}
+            sizes={PANEL_SHOT_SIZES}
+            className="aspect-[16/10] rounded-[18px]"
+          />
+        </Fade>
       )}
-
-      <div className="p-5 sm:p-7">
-        <Title className="text-[17px] sm:text-lg font-semibold tracking-tight leading-snug text-foreground">
-          {project.title}
-        </Title>
-        <Description className="mt-2.5 sm:mt-3 text-sm sm:text-[15px] leading-relaxed text-foreground/85">
-          {project.fullDescription}
-        </Description>
-
-        <div className="mt-5 sm:mt-6">
-          <ProjectFooter project={project} />
-        </div>
+      <div className="px-7 pt-4 pb-7">
+        {title}
+        <Fade {...fadeProps}>
+          <Description className="mt-2 text-[15px] leading-relaxed text-muted-foreground text-pretty">
+            {project.fullDescription}
+          </Description>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <Links project={project} />
+            <Stars stats={project.stats} />
+          </div>
+        </Fade>
       </div>
     </>
   )
@@ -184,6 +264,10 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
     setEnlargedImageOpen(true)
   }
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  // The row the panel morphed out of. Opening from a link or the palette, or
+  // stepping to another project with the arrow keys, has no row to return
+  // to, so the panel fades and scales instead (as the photo viewer does)
+  const [originIndex, setOriginIndex] = useState<number | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 640px)')
   const panelRef = useRef<HTMLDivElement>(null)
@@ -193,12 +277,12 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
   enlargedOpenRef.current = enlargedImageOpen
 
   const desktopPanelOpen = detailsOpen && isDesktop
+  const close = () => setDetailsOpen(false)
 
   // The morph panel replaces Radix Dialog on desktop, so dialog behavior
   // (Esc, focus trap, focus return, scroll lock) is handled here
   useEffect(() => {
     if (!desktopPanelOpen) return
-    returnFocusRef.current = document.activeElement as HTMLElement | null
     panelRef.current?.focus({ preventScroll: true })
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -206,6 +290,11 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
       if (e.key === 'Escape') {
         // The image preview dialog stacks on top and handles its own Escape
         setDetailsOpen(false)
+        return
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        stepRef.current(e.key === 'ArrowRight' ? 1 : -1)
         return
       }
       if (e.key !== 'Tab') return
@@ -255,38 +344,98 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
 
   const activeProject = activeIndex === null ? null : projects[activeIndex]
 
+  const rowRefs = useRef<(HTMLButtonElement | null)[]>([])
+
+  const show = (index: number, from: 'row' | 'link' | 'arrow') => {
+    setActiveIndex(index)
+    setOriginIndex(from === 'row' ? index : null)
+    setDetailsOpen(true)
+    // Focus goes back to whichever project is showing when the panel closes
+    returnFocusRef.current = rowRefs.current[index] ?? returnFocusRef.current
+    track('Project opened', { project: projects[index].slug, from })
+  }
+
+  const stepRef = useRef<(delta: number) => void>(() => {})
+  stepRef.current = (delta) => {
+    if (activeIndex === null) return
+    show((activeIndex + delta + projects.length) % projects.length, 'arrow')
+  }
+
+  // Keep ?project= in the address bar while a project is open, so the page
+  // can be shared or reloaded straight into it
+  // Only removes a value it wrote itself, so an arriving ?project= survives
+  // until the effect below has read it
+  const wroteParamRef = useRef(false)
+  useEffect(() => {
+    const slug = detailsOpen && activeProject ? activeProject.slug : null
+    if (!slug && !wroteParamRef.current) return
+    const url = new URL(window.location.href)
+    if (url.searchParams.get(PROJECT_PARAM) === slug) return
+    if (slug) url.searchParams.set(PROJECT_PARAM, slug)
+    else url.searchParams.delete(PROJECT_PARAM)
+    wroteParamRef.current = Boolean(slug)
+    window.history.replaceState(window.history.state, '', url)
+  }, [detailsOpen, activeProject])
+
+  // Open from ?project= on arrival, and from the command palette while here
+  useEffect(() => {
+    const openSlug = (slug: string | null) => {
+      const index = projects.findIndex((project) => project.slug === slug)
+      if (index !== -1) show(index, 'link')
+    }
+    openSlug(new URLSearchParams(window.location.search).get(PROJECT_PARAM))
+    const onOpen = (event: Event) => openSlug((event as CustomEvent<string>).detail)
+    window.addEventListener(OPEN_PROJECT_EVENT, onOpen)
+    return () => window.removeEventListener(OPEN_PROJECT_EVENT, onOpen)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <>
       <Section id="projects" label="Projects">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
           {projects.map((project, index) => (
-            <motion.button
+            <button
               key={project.title}
-              layoutId={`project-card-${index}`}
-              transition={MORPH}
-              style={{ borderRadius: 8 }}
+              ref={(el) => {
+                rowRefs.current[index] = el
+              }}
               type="button"
               aria-haspopup="dialog"
-              onClick={(event) => {
-                returnFocusRef.current = event.currentTarget
-                setActiveIndex(index)
-                setDetailsOpen(true)
-              }}
-              className="group relative w-full text-left cursor-pointer py-2 -mx-2 px-2 rounded-md transition-colors duration-150 hover:bg-muted/40 active:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+              onPointerEnter={() => warmPanelShot(project)}
+              onFocus={() => warmPanelShot(project)}
+              onClick={() => show(index, 'row')}
+              className="group relative -mx-2.5 w-[calc(100%+1.25rem)] cursor-pointer rounded-xl p-2.5 text-left outline-none transition-transform duration-150 ease-out focus-visible:ring-2 focus-visible:ring-foreground/20 motion-safe:active:scale-[0.99]"
             >
-              <div className="flex min-w-0 flex-col gap-0.5 leading-snug">
-                <motion.span
-                  layoutId={`project-title-${index}`}
-                  transition={MORPH}
-                  className="w-fit text-base font-medium text-foreground"
-                >
-                  {project.title}
-                </motion.span>
-                <span className="text-base text-muted-foreground text-pretty">
-                  {project.description}
+              {/* Only this surface morphs into the panel. Text and the focus
+                  ring stay outside the scaled layer so they never stretch. */}
+              <motion.span
+                layoutId={`project-card-${index}`}
+                transition={MORPH}
+                style={{ borderRadius: 12 }}
+                aria-hidden
+                className="absolute inset-0 bg-transparent transition-colors duration-150 ease-out pointer-fine:group-hover:bg-muted/60 group-active:bg-muted"
+              />
+              <span className="relative flex items-center gap-4">
+                <span className="relative block h-12 w-[76px] shrink-0 overflow-hidden rounded-md sm:h-[54px] sm:w-[86px]">
+                  {project.image && <Shot src={project.image} sizes="86px" className="h-full w-full rounded-[inherit]" />}
                 </span>
-              </div>
-            </motion.button>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5 leading-snug">
+                  <motion.span
+                    layoutId={`project-title-${index}`}
+                    transition={MORPH}
+                    className="w-fit text-base font-medium text-foreground"
+                  >
+                    {project.title}
+                  </motion.span>
+                  <span className="text-[15px] text-muted-foreground text-pretty">{project.description}</span>
+                </span>
+                <ChevronRight
+                  aria-hidden
+                  className="size-4 shrink-0 text-muted-foreground/50 transition-[color,translate] duration-150 ease-out group-hover:text-muted-foreground motion-safe:pointer-fine:group-hover:translate-x-0.5"
+                />
+              </span>
+            </button>
           ))}
         </div>
       </Section>
@@ -300,97 +449,82 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, transition: { duration: 0.15, ease: EASE_OUT } }}
               transition={{ duration: 0.25, ease: EASE_OUT }}
-              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
-              onClick={() => setDetailsOpen(false)}
+              className="fixed inset-0 z-50 bg-scrim backdrop-blur-[12px] backdrop-saturate-[1.2] reduce-transparency:bg-black/40 reduce-transparency:backdrop-blur-none"
+              onClick={close}
             />
-            <div
-              key="project-panel"
-              className="pointer-events-none fixed inset-0 z-50 grid place-items-center p-6"
-            >
-              <motion.div
-                ref={panelRef}
-                layoutId={`project-card-${activeIndex}`}
-                transition={MORPH}
-                style={{ borderRadius: 16 }}
-                role="dialog"
-                aria-modal="true"
-                aria-label={activeProject.title}
-                tabIndex={-1}
-                className="pointer-events-auto relative w-full max-w-xl overflow-hidden border border-border bg-background shadow-xl outline-none"
-              >
-                <div className="max-h-[85dvh] overflow-y-auto custom-scrollbar overscroll-contain p-6 sm:p-7">
-                  <motion.h2
-                    layoutId={`project-title-${activeIndex}`}
-                    transition={MORPH}
-                    className="w-fit text-[17px] font-semibold tracking-tight leading-snug text-foreground"
-                  >
-                    {activeProject.title}
-                  </motion.h2>
-                  <motion.div {...contentFade}>
-                    <p className="mt-3 text-sm sm:text-[15px] leading-relaxed text-foreground/85">
-                      {activeProject.fullDescription}
-                    </p>
-                    {activeProject.image && (
-                      <button
-                        type="button"
-                        aria-label={`Open ${activeProject.title} image preview`}
-                        onClick={() =>
-                          showImage({
-                            src: activeProject.image!,
-                            alt: activeProject.title,
-                          })
-                        }
-                        className="group/image relative mt-5 block w-full cursor-zoom-in overflow-hidden rounded-lg border border-border bg-muted/40 outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
-                      >
-                        <span className="relative block aspect-[16/10] w-full p-2">
-                          <span className="pointer-events-none absolute bottom-3 right-3 z-10 inline-flex size-8 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground backdrop-blur transition-opacity duration-150 opacity-0 group-hover/image:opacity-100 group-focus-visible/image:opacity-100 pointer-coarse:opacity-70">
-                            <Maximize2 className="size-3.5" />
-                          </span>
-                          <ProjectImage src={activeProject.image} alt={activeProject.title} />
-                        </span>
-                      </button>
-                    )}
-                    <div className="mt-5">
-                      <ProjectFooter project={activeProject} />
-                    </div>
-                  </motion.div>
-                </div>
-                <motion.button
-                  {...contentFade}
-                  type="button"
-                  aria-label="Close"
-                  onClick={() => setDetailsOpen(false)}
-                  className="touch-target absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground backdrop-blur transition-colors duration-150 hover:bg-muted/80 hover:text-foreground outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+              <div key="project-panel" className="pointer-events-none fixed inset-0 z-50 grid place-items-center p-6">
+                <motion.div
+                  ref={panelRef}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={activeProject.title}
+                  tabIndex={-1}
+                  data-project-panel
+                  initial={originIndex === null ? { opacity: 0, scale: 0.97 } : false}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={originIndex === null ? { opacity: 0, scale: 0.98, transition: { duration: 0.15, ease: EASE_OUT } } : undefined}
+                  transition={{ duration: 0.25, ease: EASE_OUT }}
+                  className="pointer-events-auto relative w-full max-w-[36rem] outline-none"
                 >
-                  <X className="h-3.5 w-3.5" />
-                </motion.button>
-              </motion.div>
-            </div>
+                  <motion.div
+                    layoutId={originIndex !== null ? `project-card-${originIndex}` : undefined}
+                    transition={MORPH}
+                    style={{ borderRadius: 28 }}
+                    aria-hidden
+                    className="absolute inset-0 bg-panel shadow-panel"
+                  />
+                  <div className="relative max-h-[88dvh] overflow-y-auto overscroll-contain rounded-[28px] custom-scrollbar">
+                    {/* Stepping with the arrow keys remounts the contents, which
+                        fade in quickly while the panel itself stays put. A
+                        nested AnimatePresence here would stop the open and
+                        close fades from reaching the contents. */}
+                    <motion.div
+                        key={activeIndex}
+                        initial={originIndex === null ? { opacity: 0 } : false}
+                        animate={{ opacity: 1, transition: { duration: 0.14, ease: EASE_OUT } }}
+                      >
+                        <InsetBody
+                          project={activeProject}
+                          fade={originIndex !== null}
+                          Description="p"
+                          onEnlarge={showImage}
+                          title={
+                            <motion.h2
+                              layoutId={originIndex !== null ? `project-title-${originIndex}` : undefined}
+                              transition={MORPH}
+                              className="w-fit text-base font-medium text-foreground"
+                            >
+                              {activeProject.title}
+                            </motion.h2>
+                          }
+                        />
+                    </motion.div>
+                  </div>
+                </motion.div>
+              </div>
           </>
         )}
       </AnimatePresence>
 
       <Drawer.Root open={detailsOpen && !isDesktop} onOpenChange={setDetailsOpen}>
         <Drawer.Portal>
-          <Drawer.Overlay className="motion-drawer-overlay fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px]" />
+          <Drawer.Overlay className="motion-drawer-overlay fixed inset-0 z-50 bg-scrim backdrop-blur-[12px] backdrop-saturate-[1.2] reduce-transparency:bg-black/40 reduce-transparency:backdrop-blur-none" />
           <Drawer.Content
             onCloseAutoFocus={(event) => {
               event.preventDefault()
               returnFocusRef.current?.focus({ preventScroll: true })
             }}
-            className="motion-drawer fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col rounded-t-[20px] border-t border-border bg-background outline-none"
+            className="motion-drawer fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col rounded-t-[28px] bg-panel shadow-panel outline-none"
           >
-            <div
-              aria-hidden
-              className="mx-auto mt-3 h-1 w-9 shrink-0 rounded-full bg-muted-foreground/25"
-            />
+            <div aria-hidden className="mx-auto mt-2.5 mb-1 h-1 w-9 shrink-0 rounded-full bg-muted-foreground/25" />
             {activeProject && (
-              <div className="mt-3 overflow-y-auto overscroll-contain pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-                <ProjectDetails
+              <div className="overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
+                <InsetBody
                   project={activeProject}
-                  Title={Drawer.Title}
+                  fade={false}
                   Description={Drawer.Description}
                   onEnlarge={showImage}
+                  title={<Drawer.Title className="text-base font-medium text-foreground">{activeProject.title}</Drawer.Title>}
                 />
               </div>
             )}

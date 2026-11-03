@@ -217,10 +217,10 @@ export function Navigation({
               </button>
             </Drawer.Trigger>
             <Drawer.Portal>
-              <Drawer.Overlay className="motion-drawer-overlay md:hidden fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px]" />
+              <Drawer.Overlay className="motion-drawer-overlay md:hidden fixed inset-0 z-50 bg-scrim backdrop-blur-[12px] backdrop-saturate-[1.2] reduce-transparency:bg-black/40 reduce-transparency:backdrop-blur-none" />
               <Drawer.Content
                 aria-describedby={undefined}
-                className="motion-drawer md:hidden fixed inset-x-0 bottom-0 z-50 max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-t-[20px] border-t border-border bg-background outline-none"
+                className="motion-drawer md:hidden fixed inset-x-0 bottom-0 z-50 max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-t-[28px] bg-panel shadow-panel outline-none"
               >
                 <Drawer.Title className="sr-only">Navigation menu</Drawer.Title>
                 <div

@@ -11,7 +11,7 @@ import type { AskCardData, CardName } from '@/lib/ask/cards'
 import { CONTACT_EMAIL, CONTACT_LINKS } from '@/lib/contact'
 import { EXPERIENCE } from '@/lib/experience'
 import { hasCount } from '@/lib/github-api'
-import { PROJECTS } from '@/lib/projects'
+import { PROJECT_PARAM, PROJECTS } from '@/lib/projects'
 import { formatPlanPrice, ZEROLEAKS_PLAN_TERMS, ZEROLEAKS_PLANS, ZEROLEAKS_PRICING_URL } from '@/lib/zeroleaks'
 
 const CardDataContext = createContext<Promise<AskCardData> | null>(null)
@@ -154,7 +154,14 @@ function ProjectCard({ slug }: { slug?: string }) {
         )}
         <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2 sm:py-1.5 sm:pl-0 sm:pr-2.5">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-base font-medium text-foreground">{project.title}</p>
+            {/* Opens the project's details on the home page */}
+            <a
+              href={`/?${PROJECT_PARAM}=${project.slug}`}
+              {...NEW_TAB}
+              className="rounded-sm text-base font-medium text-foreground underline-offset-[5px] decoration-muted-foreground/65 hover:underline"
+            >
+              {project.title}
+            </a>
             {project.repo && (
               <Suspense fallback={null}>
                 <RepoStats repo={project.repo} />

@@ -62,6 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(ASK_ENABLED
       ? [{ url: `${siteConfig.url}/ask`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.5 }]
       : []),
+    { url: `${siteConfig.url}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
     ...(await getPostEntries()),
   ]
 }

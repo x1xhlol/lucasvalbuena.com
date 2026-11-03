@@ -2,6 +2,8 @@ import { ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
 import { Section } from '@/components/section'
+import { NewsletterForm } from '@/components/newsletter-form'
+import { NEWSLETTER_ENABLED } from '@/lib/newsletter/config'
 
 export interface BlogPost {
   id: string
@@ -22,7 +24,7 @@ export function BlogSection({ posts }: { posts: BlogPost[] }) {
 
   return (
     <Section id="blog" label="Writing">
-      <div className="space-y-5">
+      <div>
         <div className="flex flex-col">
           {posts.map((post) => (
             // Same row as the /blog index: a truncated excerpt read as a
@@ -46,15 +48,20 @@ export function BlogSection({ posts }: { posts: BlogPost[] }) {
             </Link>
           ))}
         </div>
-
-        <div>
+        {/* One quiet line under the posts: the archive on the left, the
+            signup on the right under the dates */}
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <Link
             href="/blog"
-            className="group inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="group inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             View all posts
             <ArrowRight className="h-3 w-3 motion-safe:pointer-fine:group-hover:translate-x-0.5 transition-transform duration-150 ease-out" />
           </Link>
+          {/* The post rows' hover boxes reach 8px past the text (-mx-2 px-2), so
+              the pill reaches out the same 8px: its edge lines up with the
+              rows' edge, and its button with the dates */}
+          {NEWSLETTER_ENABLED && <NewsletterForm compact className="w-full sm:-mr-2 sm:w-[21rem]" />}
         </div>
       </div>
     </Section>

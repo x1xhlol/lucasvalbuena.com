@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { newsletterAfterChange } from '@/lib/newsletter/post-hook'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -8,6 +9,9 @@ export const Posts: CollectionConfig = {
   },
   access: {
     read: () => true,
+  },
+  hooks: {
+    afterChange: [newsletterAfterChange],
   },
   fields: [
     {
@@ -71,6 +75,50 @@ export const Posts: CollectionConfig = {
         date: {
           pickerAppearance: 'dayAndTime',
         },
+      },
+    },
+    // New posts by email (lib/newsletter). Only used when the deployment has
+    // the Resend settings; see AGENTS.md.
+    {
+      name: 'newsletterSend',
+      type: 'checkbox',
+      label: 'Email subscribers when published',
+      defaultValue: true,
+      admin: {
+        position: 'sidebar',
+        description:
+          'Sends a short teaser to subscribers 10 minutes after the post is first published. Cancel it in Resend → Broadcasts within that window.',
+      },
+    },
+    {
+      name: 'newsletterSendTest',
+      type: 'checkbox',
+      label: 'Send me a test',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: 'Emails the teaser to NEWSLETTER_TEST_TO when you save, then turns itself off. Works on drafts.',
+      },
+    },
+    {
+      name: 'newsletterSentAt',
+      type: 'date',
+      label: 'Emailed to subscribers',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        date: { pickerAppearance: 'dayAndTime' },
+        condition: (data) => Boolean(data?.newsletterSentAt),
+      },
+    },
+    {
+      name: 'newsletterBroadcastId',
+      type: 'text',
+      label: 'Resend broadcast',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (data) => Boolean(data?.newsletterBroadcastId),
       },
     },
   ],

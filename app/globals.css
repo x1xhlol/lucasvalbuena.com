@@ -20,8 +20,13 @@
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(1 0 0);
   --image-outline: oklch(0 0 0 / 0.1);
-  --overlay-shadow: 0 0 0 1px oklch(0 0 0 / 0.06), 0 4px 12px oklch(0 0 0 / 0.08), 0 24px 64px oklch(0 0 0 / 0.14);
   --raised-shadow: 0 0 0 1px oklch(0 0 0 / 0.07), 0 1px 2px oklch(0 0 0 / 0.05);
+  /* Everything that floats (dialogs, the palette, popovers, drawers, project
+     details): a surface a step above the page, a soft layered shadow instead
+     of one heavy drop, and a light veil to set it on */
+  --panel: oklch(1 0 0);
+  --panel-shadow: 0 0 0 1px oklch(0 0 0 / 0.05), 0 1px 2px oklch(0 0 0 / 0.03), 0 6px 16px -4px oklch(0 0 0 / 0.06), 0 28px 64px -12px oklch(0 0 0 / 0.16);
+  --scrim: oklch(0.2 0 0 / 0.1);
   --radius: 0.5rem;
 }
 
@@ -37,8 +42,10 @@
   --destructive: oklch(0.66 0.2 27);
   --destructive-foreground: oklch(0.13 0 0);
   --image-outline: oklch(1 0 0 / 0.1);
-  --overlay-shadow: 0 0 0 1px oklch(1 0 0 / 0.12);
   --raised-shadow: 0 0 0 1px oklch(1 0 0 / 0.12);
+  --panel: oklch(0.165 0 0);
+  --panel-shadow: 0 0 0 1px oklch(1 0 0 / 0.1);
+  --scrim: oklch(0 0 0 / 0.45);
 }
 
 /* System motion tokens. Overriding --ease-out / --ease-in-out retunes Tailwind's
@@ -71,8 +78,10 @@
   --color-ring: var(--muted-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --shadow-overlay: var(--overlay-shadow);
   --shadow-raised: var(--raised-shadow);
+  --shadow-panel: var(--panel-shadow);
+  --color-panel: var(--panel);
+  --color-scrim: var(--scrim);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 4px);
@@ -120,6 +129,12 @@
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {
   outline: 2px solid var(--foreground);
   outline-offset: 3px;
+}
+
+/* The project panel takes focus itself so Esc and Tab work from the start;
+   the panel is not a control, so it shows no outline of its own */
+[data-project-panel]:focus-visible {
+  outline: none;
 }
 
 /* Rows on Ask's cards run edge to edge and the card clips anything outside
@@ -172,9 +187,11 @@ html:has([data-ask-shell]) body {
   outline: none;
 }
 
-/* The Ask field sits inside a frame with the send button; the frame shows an
-   input-colored ring on focus instead of the field drawing its own outline */
-#ask-input:focus-visible {
+/* The Ask field and the newsletter field sit inside a frame with their button;
+   the frame shows an input-colored ring on focus instead of the field drawing
+   its own outline */
+#ask-input:focus-visible,
+[data-pill-input]:focus-visible {
   outline: none;
 }
 

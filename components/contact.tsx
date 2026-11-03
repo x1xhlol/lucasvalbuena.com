@@ -66,7 +66,7 @@ function CopyEmail({ email }: { email: string }) {
       aria-label={`Copy email address ${email}`}
       whileTap={reducedMotion ? undefined : { scale: 0.97 }}
       transition={{ duration: 0.1, ease }}
-      className="copy-email group relative inline-flex items-baseline align-baseline font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 rounded-sm"
+      className="copy-email group relative inline-flex items-baseline align-baseline text-foreground outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 rounded-sm"
     >
       <span className="whitespace-nowrap underline underline-offset-[5px] decoration-muted-foreground/65 group-hover:decoration-foreground transition-colors">
         {email}
@@ -147,7 +147,7 @@ export function Contact() {
             href="/Lucas_Valbuena.pdf"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors font-medium text-foreground"
+            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
           >
             CV
           </a>
@@ -156,7 +156,7 @@ export function Contact() {
             href="https://github.com/x1xhlol"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors font-medium text-foreground"
+            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
           >
             GitHub
           </a>,{' '}
@@ -164,7 +164,7 @@ export function Contact() {
             href="https://x.com/Lucknite"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors font-medium text-foreground"
+            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
           >
             X
           </a>{' '}
@@ -173,7 +173,7 @@ export function Contact() {
             href="https://linkedin.com/in/lucknite"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors font-medium text-foreground"
+            className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors text-foreground"
           >
             LinkedIn
           </a>

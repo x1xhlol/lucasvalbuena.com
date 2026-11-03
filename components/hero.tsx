@@ -7,10 +7,24 @@ import { Section } from '@/components/section'
 import { Fact } from '@/components/fact'
 import { Age, ageInYears } from '@/components/age'
 
-const SCRAMBLE_GLYPHS = '#$%&/<>=+*0123456789ABCDEF'
-const SCRAMBLE_RADIUS = 44
-const SCRAMBLE_CYCLE_MS = 40
-const SCRAMBLE_SETTLE_MS = 350
+// Stand-ins sized like the letter they replace, so a scrambled lowercase
+// letter never pokes above the x-height and the line keeps its shape
+const GLYPHS_UPPER = '#$%&0123456789ABCDEFXZ'
+const GLYPHS_LOWER = 'acenorsuvxz*+=<>'
+const SCRAMBLE_RADIUS = 48
+const SCRAMBLE_CYCLE_MS = 45
+// Glyphs under the pointer stay scrambled longest; the edge of the radius
+// settles first, so the name resolves back toward the cursor instead of
+// snapping all at once
+const SCRAMBLE_SETTLE_MIN_MS = 160
+const SCRAMBLE_SETTLE_MAX_MS = 420
+
+function randomGlyph(original: string, current: string | null) {
+  const pool = original === original.toLowerCase() ? GLYPHS_LOWER : GLYPHS_UPPER
+  let next = current
+  while (next === current || next === original) next = pool[Math.floor(Math.random() * pool.length)]
+  return next
+}
 
 // Characters glitch near the pointer while it MOVES and settle once it rests —
 // each movement energizes nearby glyphs for a short window, so a stationary
@@ -31,6 +45,7 @@ function ScrambledName({ text }: { text: string }) {
       els.forEach((el, i) => {
         if (!el) return
         el.textContent = text[i]
+        delete el.dataset.scrambled
         el.style.width = ''
       })
       const widths = els.map((el) => (el ? el.getBoundingClientRect().width : 0))
@@ -63,11 +78,12 @@ function ScrambledName({ text }: { text: string }) {
       if ((activeUntilRef.current[i] ?? 0) > time) {
         anyActive = true
         if (cycle) {
-          el.textContent =
-            SCRAMBLE_GLYPHS[Math.floor(Math.random() * SCRAMBLE_GLYPHS.length)]
+          el.textContent = randomGlyph(original, el.textContent)
+          el.dataset.scrambled = ''
         }
       } else if (el.textContent !== original) {
         el.textContent = original
+        delete el.dataset.scrambled
       }
     })
     // The pass where every window has expired restores all glyphs, then stops
@@ -76,7 +92,7 @@ function ScrambledName({ text }: { text: string }) {
 
   const energize = (event: React.PointerEvent) => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const until = performance.now() + SCRAMBLE_SETTLE_MS
+    const now = performance.now()
     let any = false
     glyphRefs.current.forEach((el, i) => {
       if (!el || text[i] === ' ') return
@@ -86,7 +102,9 @@ function ScrambledName({ text }: { text: string }) {
         event.clientY - (rect.top + rect.height / 2),
       )
       if (distance < SCRAMBLE_RADIUS) {
-        activeUntilRef.current[i] = until
+        const closeness = 1 - distance / SCRAMBLE_RADIUS
+        const until = now + SCRAMBLE_SETTLE_MIN_MS + closeness * (SCRAMBLE_SETTLE_MAX_MS - SCRAMBLE_SETTLE_MIN_MS)
+        activeUntilRef.current[i] = Math.max(activeUntilRef.current[i] ?? 0, until)
         any = true
       }
     })
@@ -108,7 +126,7 @@ function ScrambledName({ text }: { text: string }) {
             ref={(el) => {
               glyphRefs.current[i] = el
             }}
-            className="inline-block"
+            className="inline-block text-center transition-colors duration-150 ease-out data-[scrambled]:text-muted-foreground data-[scrambled]:duration-0"
           >
             {char}
           </span>

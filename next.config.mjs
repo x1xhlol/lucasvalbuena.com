@@ -13,6 +13,23 @@ const nextConfig = {
   // deployment has a key, rather than linking to an offline page
   env: {
     NEXT_PUBLIC_ASK_ENABLED: process.env.OPENROUTER_API_KEY ? '1' : '',
+    // Same idea for "new posts by email": the form, the palette action, and
+    // the privacy note only appear when the deployment can send
+    NEXT_PUBLIC_NEWSLETTER_ENABLED:
+      process.env.RESEND_API_KEY && process.env.RESEND_NEWSLETTER_SEGMENT_ID && process.env.NEWSLETTER_SECRET ? '1' : '',
+  },
+  // Fonts for the newsletter emails. Mail clients load them from another
+  // origin, which web fonts only allow with a CORS header.
+  async headers() {
+    return [
+      {
+        source: '/email/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Cache-Control', value: 'public, max-age=31536000' },
+        ],
+      },
+    ]
   },
   images: {
     remotePatterns: [

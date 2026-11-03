@@ -95,7 +95,7 @@ export function Fact({
         id={id}
         ref={panel}
         style={{ marginLeft: shift, transformOrigin: `calc(50% - ${shift}px) 100%` }}
-        className={`pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-popover text-popover-foreground shadow-overlay transition-[opacity,scale,translate,visibility] ease-out motion-reduce:transition-none ${
+        className={`pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-xl bg-panel text-popover-foreground shadow-panel transition-[opacity,scale,translate,visibility] ease-out motion-reduce:transition-none ${
           open
             ? 'visible translate-y-0 scale-100 opacity-100 duration-150'
             : 'invisible translate-y-1 scale-[0.96] opacity-0 duration-100'
