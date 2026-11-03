@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 const TRIGGER = 'curl'
 const COMMAND = '$ curl -i /api/system-prompt'
@@ -34,6 +35,7 @@ function splitLinks(text: string): { text: string; href?: string }[] {
 // real fetch, real status line, real headers, real body.
 export function ExtractionEgg() {
   const [open, setOpen] = useState(false)
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const [segments, setSegments] = useState<Segment[]>([])
   const [shown, setShown] = useState(0)
   const [done, setDone] = useState(false)
@@ -137,8 +139,8 @@ export function ExtractionEgg() {
   }, [open])
 
   useEffect(() => {
-    if (!open || total === 0) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!open || total === 0 || done) return
+    if (reducedMotion) {
       setShown(total)
       setDone(true)
       return
@@ -174,7 +176,7 @@ export function ExtractionEgg() {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
       rafRef.current = null
     }
-  }, [open, total])
+  }, [open, total, done, reducedMotion])
 
   if (!open) return null
 

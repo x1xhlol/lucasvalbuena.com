@@ -2,6 +2,7 @@ import { getPayloadClient } from '@/lib/payload'
 import { Navigation } from '@/components/navigation'
 import {
   BlogPostLayout,
+  type AdjacentPost,
   type BlogPostCover,
 } from '@/components/blog-post-layout'
 import { notFound } from 'next/navigation'
@@ -10,38 +11,23 @@ import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical
 import type { Metadata } from 'next'
 import type { BlogPostTag } from '@/components/blog-section'
 import { buildBlogPostMetadata } from '@/lib/build-blog-post-metadata'
+import { cache } from 'react'
 
-type Props = {
-  params: Promise<{ slug: string }>
-}
+export const revalidate = 60
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  try {
-    const { slug } = await params
-    const payload = await getPayloadClient()
-
-    const { docs } = await payload.find({
-      collection: 'posts',
-      where: {
-        slug: { equals: slug },
-        status: { equals: 'published' },
-      },
-      limit: 1,
-    })
-
-    const post = docs[0]
-    if (!post) return { title: 'Post Not Found' }
-
-    return buildBlogPostMetadata(post, slug)
-  } catch {
-    return { title: 'Post Not Found' }
-  }
-}
-
-export default async function BlogPostPage({ params }: Props) {
-  const { slug } = await params
+export async function generateStaticParams() {
   const payload = await getPayloadClient()
+  const { docs } = await payload.find({
+    collection: 'posts',
+    where: { status: { equals: 'published' } },
+    pagination: false,
+    select: { slug: true },
+  })
+  return docs.map((post) => ({ slug: post.slug }))
+}
 
+const getPost = cache(async (slug: string) => {
+  const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'posts',
     where: {
@@ -50,9 +36,44 @@ export default async function BlogPostPage({ params }: Props) {
     },
     limit: 1,
   })
+  return docs[0] ?? null
+})
 
-  const post = docs[0]
+type Props = {
+  params: Promise<{ slug: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const post = await getPost(slug)
+  return post ? buildBlogPostMetadata(post, slug) : { title: 'Post not found' }
+}
+
+export default async function BlogPostPage({ params }: Props) {
+  const { slug } = await params
+  const payload = await getPayloadClient()
+
+  const post = await getPost(slug)
   if (!post) notFound()
+
+  // Neighbors in reverse-chronological order: index-1 is newer, index+1 older
+  const { docs: allPosts } = await payload.find({
+    collection: 'posts',
+    where: { status: { equals: 'published' } },
+    sort: '-publishedAt',
+    pagination: false,
+    select: { title: true, slug: true },
+  })
+  const currentIndex = allPosts.findIndex((p) => p.slug === slug)
+  const toAdjacent = (p?: { title?: unknown; slug?: unknown }): AdjacentPost | null =>
+    p && typeof p.title === 'string' && typeof p.slug === 'string'
+      ? { title: p.title, slug: p.slug }
+      : null
+  const newerPost = currentIndex > 0 ? toAdjacent(allPosts[currentIndex - 1]) : null
+  const olderPost =
+    currentIndex >= 0 && currentIndex < allPosts.length - 1
+      ? toAdjacent(allPosts[currentIndex + 1])
+      : null
 
   const cover =
     typeof post.coverImage === 'object' && post.coverImage !== null
@@ -64,12 +85,15 @@ export default async function BlogPostPage({ params }: Props) {
       <Navigation />
       <BlogPostLayout
         title={post.title as string}
+        slug={post.slug as string | undefined}
         excerpt={post.excerpt as string | undefined}
         publishedAt={post.publishedAt as string | undefined}
         tags={((post.tags as BlogPostTag[]) ?? [])
           .map((t) => t.tag)
           .filter((tag): tag is string => Boolean(tag))}
         cover={cover}
+        newerPost={newerPost}
+        olderPost={olderPost}
       >
         <RichText data={post.content as SerializedEditorState} />
       </BlogPostLayout>

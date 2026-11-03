@@ -1,27 +1,11 @@
 'use client'
 
-import { FileText, Github, Linkedin } from 'lucide-react'
 import type { SVGProps } from 'react'
 import { useEffect, useRef } from 'react'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import Image from 'next/image'
 import { Section } from '@/components/section'
-
-const OpenAIIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z" />
-  </svg>
-)
-
-const XIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-  </svg>
-)
+import { Fact } from '@/components/fact'
+import { Age, ageInYears } from '@/components/age'
 
 const SCRAMBLE_GLYPHS = '#$%&/<>=+*0123456789ABCDEF'
 const SCRAMBLE_RADIUS = 44
@@ -67,6 +51,9 @@ function ScrambledName({ text }: { text: string }) {
   )
 
   const loop = (time: number) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      activeUntilRef.current = []
+    }
     const cycle = time - lastCycleRef.current >= SCRAMBLE_CYCLE_MS
     if (cycle) lastCycleRef.current = time
     let anyActive = false
@@ -131,157 +118,110 @@ function ScrambledName({ text }: { text: string }) {
   )
 }
 
-function CvLink() {
-  return (
-    <a
-      href="/Lucas_Valbuena.pdf"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="View CV (PDF)"
-      className="inline-flex items-center gap-1.5 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-[color,background-color,transform] duration-150 ease-out active:scale-95"
-    >
-      <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-      <span className="text-xs font-medium leading-none">CV</span>
-    </a>
-  )
-}
+const OpenAIIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z" />
+  </svg>
+)
+
+const ZeroLeaksIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 16 16" fill="currentColor" className={className} {...props}>
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M14 0C15.1046 0 16 0.895431 16 2V14C16 15.1046 15.1046 16 14 16H2C0.895431 16 0 15.1046 0 14V2C0 0.895431 0.895431 0 2 0H14ZM8 5.3125C6.51573 5.3125 5.3125 6.51573 5.3125 8C5.3125 9.48427 6.51573 10.6875 8 10.6875C9.48427 10.6875 10.6875 9.48427 10.6875 8C10.6875 6.51573 9.48427 5.3125 8 5.3125Z"
+    />
+  </svg>
+)
+
+const OrchidMark = () => (
+  // Right margin stands in for a space: a literal space inside the underlined
+  // link would get underlined, so the line would start before the word
+  <span className="relative ml-[0.15em] mr-[0.4em] inline-block size-[0.85em] align-[-0.1em]" aria-hidden>
+    <Image src="/logos/orchid-ink.svg" alt="" fill loading="eager" className="object-contain dark:hidden" />
+    <Image src="/logos/orchid-paper.svg" alt="" fill loading="eager" className="hidden object-contain dark:block" />
+  </span>
+)
 
 type Stats = { stars: string; forks: string }
 
-export function Hero({
-  initialStats,
-  repoStats,
-}: {
-  initialStats: Stats
-  repoStats?: Stats
-}) {
-  const systemPrompts = repoStats ?? initialStats
-
+export function Hero({ stats }: { stats: Stats }) {
   return (
-    <Section id="home" className="pt-28 pb-8 md:pt-24 md:pb-10">
+    <Section id="home" className="pt-16 pb-8 md:pt-16 md:pb-10">
       <div className="space-y-7 md:space-y-8">
-          <h1
-            aria-label="Lucas Valbuena"
-            className="animate-rise-entry font-geist-pixel text-2xl md:text-[32px] font-medium tracking-tight leading-[1.15]"
-          >
-            <ScrambledName text="Lucas Valbuena" />
-          </h1>
+        <h1
+          aria-label="Lucas Valbuena"
+          className="font-geist-pixel text-2xl md:text-[32px] font-medium tracking-tight leading-[1.15]"
+        >
+          <ScrambledName text="Lucas Valbuena" />
+        </h1>
 
-          <div
-            className="animate-rise-entry space-y-4"
-            style={{ '--rise-delay': '40ms' } as React.CSSProperties}
-          >
-            <p className="text-[15px] md:text-base text-foreground/90 leading-relaxed max-w-xl">
-              I reverse-engineer AI tools and build security products. 17, based
-              in Spain. I work at{' '}
-              <a
-                href="https://orchid.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors"
-              >
-                Orchid
-              </a>{' '}
-              (YC P25) as an AI agent and product intern.
-            </p>
-            <p className="text-[15px] md:text-base text-foreground/90 leading-relaxed max-w-xl">
-              I founded{' '}
-              <a
-                href="https://zeroleaks.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors"
-              >
-                ZeroLeaks
-              </a>
-              , and created and maintain{' '}
-              <a
-                href="https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors"
-              >
-                system-prompts-and-models-of-ai-tools
-              </a>{' '}
-              {/* The star count is the proof; don't let it break across lines */}
-              <span className="whitespace-nowrap">
-                ({systemPrompts.stars} stars)
-              </span>
-              .
-            </p>
-          </div>
-
-          <div
-            className="animate-rise-entry pt-1"
-            style={{ '--rise-delay': '80ms' } as React.CSSProperties}
-          >
+        <div className="space-y-4">
+          <p className="text-base text-muted-foreground leading-relaxed text-pretty max-w-xl">
+            I reverse-engineer AI tools and build security products. Founder of{' '}
             <a
-              href="https://x.com/Lucknite/status/2012065359717708279"
+              href="https://zeroleaks.ai"
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex items-center gap-2.5 text-sm text-foreground/90"
+              className="whitespace-nowrap font-medium text-foreground underline-offset-[5px] decoration-muted-foreground/65 transition-colors hover:underline"
             >
-              <OpenAIIcon className="h-4 w-4 shrink-0" />
-              <span>
-                <span className="underline underline-offset-[5px] decoration-muted-foreground/65 group-hover:decoration-foreground transition-colors">
-                  GPT-5 Bio Bug Bounty
-                </span>
-                <span className="text-muted-foreground"> ($6,000 award)</span>
-              </span>
+              <ZeroLeaksIcon className="ml-[0.15em] mr-[0.4em] inline size-[0.8em] align-[-0.08em]" aria-hidden />ZeroLeaks
             </a>
-          </div>
-
-          <TooltipProvider delayDuration={400} skipDelayDuration={300}>
-            <div
-              className="animate-rise-entry flex items-center gap-1 pt-1 -ml-2"
-              style={{ '--rise-delay': '120ms' } as React.CSSProperties}
+            , previously at{' '}
+            <a
+              href="https://orchid.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="whitespace-nowrap font-medium text-foreground underline-offset-[5px] decoration-muted-foreground/65 transition-colors hover:underline"
             >
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href="https://github.com/x1xhlol"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-[color,background-color,transform] duration-150 ease-out active:scale-95"
-                    aria-label="GitHub profile"
-                  >
-                    <Github className="h-3.5 w-3.5" aria-hidden="true" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent>GitHub</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href="https://x.com/Lucknite"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-[color,background-color,transform] duration-150 ease-out active:scale-95"
-                    aria-label="X profile"
-                  >
-                    <XIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent>X</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href="https://linkedin.com/in/lucknite"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-[color,background-color,transform] duration-150 ease-out active:scale-95"
-                    aria-label="LinkedIn profile"
-                  >
-                    <Linkedin className="h-3.5 w-3.5" aria-hidden="true" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent>LinkedIn</TooltipContent>
-              </Tooltip>
-              <span className="mx-1 h-3.5 w-px bg-border" aria-hidden />
-              <CvLink />
-            </div>
-          </TooltipProvider>
+              <OrchidMark />Orchid
+            </a>{' '}
+            (YC P25).{' '}
+            <Fact
+              label={`${ageInYears()} years old`}
+              className="text-muted-foreground transition-colors duration-150 hover:text-foreground"
+              detail={(open) => (
+                <span className="block px-3 py-2 font-mono text-sm text-foreground">
+                  <Age active={open} /> <span className="text-muted-foreground">years</span>
+                </span>
+              )}
+            >
+              {ageInYears()}
+            </Fact>
+            , based in Spain.
+          </p>
+          <p className="text-base text-muted-foreground leading-relaxed text-pretty max-w-xl">
+            I&nbsp;maintain{' '}
+            <a
+              href="https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools"
+              target="_blank"
+              rel="noopener noreferrer"
+              // inline-block keeps the slug whole on one line; max-w-full lets
+              // it break only on screens narrower than the slug itself
+              className="inline-block max-w-full font-medium text-foreground underline-offset-[5px] decoration-muted-foreground/65 transition-colors hover:underline"
+            >
+              system-prompts-and-models-of-ai-tools
+            </a>
+            , {stats.stars} stars.
+          </p>
+        </div>
+
+        <div className="pt-1">
+          <a
+            href="https://x.com/Lucknite/status/2012065359717708279"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-2.5 text-base text-muted-foreground"
+          >
+            <OpenAIIcon className="h-4 w-4 shrink-0" />
+            <span>
+              <span className="font-medium text-foreground underline-offset-[5px] decoration-muted-foreground/65 transition-colors group-hover:underline">
+                GPT-5 Bio Bug Bounty
+              </span>
+              <span className="text-muted-foreground"> ($6,000 award)</span>
+            </span>
+          </a>
+        </div>
       </div>
     </Section>
   )

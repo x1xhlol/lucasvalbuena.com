@@ -1,4 +1,5 @@
 import { list, put } from '@vercel/blob'
+import { revalidatePath } from 'next/cache'
 import { createHmac, timingSafeEqual } from 'crypto'
 
 export interface PhotoMetadata {
@@ -9,6 +10,7 @@ export interface PhotoMetadata {
   shutterSpeed?: string
   iso?: number
   dateTaken?: string
+  // "City, Country", never coordinates (lib/geocode.ts)
   location?: string
 }
 
@@ -27,18 +29,23 @@ export interface PhotoManifest {
 
 const MANIFEST_PATH = 'photos/manifest.json'
 
-export async function getManifest(): Promise<PhotoManifest> {
-  try {
-    const blobs = await list({ prefix: MANIFEST_PATH })
-    const manifestBlob = blobs.blobs.find((b) => b.pathname === MANIFEST_PATH)
-    if (!manifestBlob) return { photos: [] }
+export async function getManifest(options?: {
+  revalidate?: number
+}): Promise<PhotoManifest> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return { photos: [] }
 
-    const res = await fetch(manifestBlob.url, { cache: 'no-store' })
-    if (!res.ok) return { photos: [] }
-    return (await res.json()) as PhotoManifest
-  } catch {
-    return { photos: [] }
-  }
+  const blobs = await list({ prefix: MANIFEST_PATH })
+  const manifestBlob = blobs.blobs.find((b) => b.pathname === MANIFEST_PATH)
+  if (!manifestBlob) return { photos: [] }
+
+  const res = await fetch(
+    manifestBlob.url,
+    options?.revalidate !== undefined
+      ? { next: { revalidate: options.revalidate } }
+      : { cache: 'no-store' },
+  )
+  if (!res.ok) throw new Error(`Photo manifest request failed (${res.status})`)
+  return (await res.json()) as PhotoManifest
 }
 
 export async function saveManifest(manifest: PhotoManifest): Promise<void> {
@@ -48,6 +55,9 @@ export async function saveManifest(manifest: PhotoManifest): Promise<void> {
     allowOverwrite: true,
     contentType: 'application/json',
   })
+  // Purge the cached gallery (route + manifest data cache) so admin writes
+  // show up immediately instead of after the ISR window
+  revalidatePath('/photos')
 }
 
 const ADMIN_COOKIE = 'admin_session'

@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Lock } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import Link from 'next/link'
+import { CircleAlert, Lock } from 'lucide-react'
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
@@ -13,6 +15,7 @@ export default function AdminLoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (loading) return
     setError('')
     setLoading(true)
 
@@ -24,27 +27,27 @@ export default function AdminLoginPage() {
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        setError(data.error || 'Invalid password')
+        setError(res.status === 401
+          ? 'That password did not match. Try again.'
+          : 'Sign-in is unavailable. Try again in a moment.')
         return
       }
 
-      router.push('/admin/photos')
+      router.replace('/admin/photos')
     } catch {
-      setError('Something went wrong')
+      setError('Could not connect. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
+    <main id="main-content" tabIndex={-1} className="min-h-screen flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Header */}
+        <form onSubmit={handleSubmit} aria-busy={loading} className="space-y-6">
           <div className="space-y-2 text-center">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border border-border bg-muted/20 mx-auto mb-2">
-              <Lock className="h-5 w-5 text-muted-foreground" />
+              <Lock className="h-5 w-5 text-muted-foreground" aria-hidden />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Admin
@@ -54,30 +57,44 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          {/* Password field */}
           <div className="space-y-2">
-            <input
+            <label htmlFor="admin-password" className="block text-sm font-medium">
+              Password
+            </label>
+            <Input
+              id="admin-password"
+              name="password"
               type="password"
-              placeholder="Password"
+              autoComplete="current-password"
+              required
+              disabled={loading}
+              aria-invalid={!!error}
+              aria-describedby={error ? 'admin-login-error' : undefined}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoFocus
-              className="w-full h-11 px-4 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/20 transition-all"
+              onChange={(e) => {
+                setPassword(e.target.value)
+                setError('')
+              }}
             />
             {error && (
-              <p className="text-sm text-red-500 font-medium">{error}</p>
+              <p id="admin-login-error" role="alert" className="flex items-start gap-2 text-sm text-destructive">
+                <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                {error}
+              </p>
             )}
           </div>
 
-          {/* Submit */}
           <Button
             type="submit"
             disabled={loading || !password}
             className="w-full h-11 rounded-lg font-medium"
           >
-            {loading ? 'Authenticating...' : 'Continue'}
+            {loading ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
+        <Link href="/" className="mt-6 flex min-h-11 items-center justify-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+          Back to the portfolio
+        </Link>
       </div>
     </main>
   )

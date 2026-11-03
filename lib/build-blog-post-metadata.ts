@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-type BlogPostLike = Record<string, unknown> & {
+type BlogPostLike = {
   title?: unknown
   excerpt?: unknown
   coverImage?: unknown

@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { useTheme } from 'next-themes'
 import { Navigation } from '@/components/navigation'
 import { useEffect, useState } from 'react'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 const DitheredObject = dynamic(
   () => import('@/components/canvasui/DitheredObject'),
@@ -15,10 +16,14 @@ const glitchChars = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`0123456789'
 
 function useGlitchText(target: string, duration = 500) {
   const [text, setText] = useState(target)
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
   useEffect(() => {
     // Rapid character flicker is exactly what reduced-motion users opt out of
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (reducedMotion) {
+      setText(target)
+      return
+    }
 
     const steps = 6
     const interval = duration / steps
@@ -46,7 +51,7 @@ function useGlitchText(target: string, duration = 500) {
     }, interval)
 
     return () => clearInterval(timer)
-  }, [target, duration])
+  }, [target, duration, reducedMotion])
 
   return text
 }
@@ -57,28 +62,22 @@ const inlineLinkClass =
 export default function NotFound() {
   const glitched = useGlitchText('404')
   const { resolvedTheme } = useTheme()
-  const [reduceMotion, setReduceMotion] = useState(false)
-
-  useEffect(() => {
-    setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  }, [])
 
   return (
     <div className="relative min-h-dvh">
       <Navigation />
-      <main className="flex min-h-dvh items-center">
+      <main id="main-content" tabIndex={-1} className="flex min-h-dvh items-center">
         <section className="mx-auto w-full max-w-5xl px-6 md:px-12 pb-14">
           <div className="max-w-2xl mx-auto space-y-7 md:space-y-8">
             <h1
               aria-label="404, page not found"
-              className="animate-rise-entry font-geist-pixel text-2xl md:text-[32px] font-medium tracking-tight leading-[1.15]"
+              className="font-geist-pixel text-2xl md:text-[32px] font-medium tracking-tight leading-[1.15]"
             >
               {glitched}
             </h1>
 
             <p
-              className="animate-rise-entry text-[15px] md:text-base text-foreground/90 leading-relaxed max-w-xl"
-              style={{ '--rise-delay': '40ms' } as React.CSSProperties}
+              className="text-[15px] md:text-base text-foreground/90 leading-relaxed max-w-xl"
             >
               This page doesn&apos;t exist or has been moved. Head{' '}
               <Link href="/" className={inlineLinkClass}>
@@ -97,8 +96,6 @@ export default function NotFound() {
 
             <div
               aria-hidden
-              className="animate-rise-entry"
-              style={{ '--rise-delay': '80ms' } as React.CSSProperties}
             >
               <DitheredObject
                 src="/404-key.svg"
@@ -109,8 +106,8 @@ export default function NotFound() {
                 highlight="#a3a3a3"
                 orbit
                 zoom={false}
-                floatIntensity={reduceMotion ? 0 : 2}
-                rotationIntensity={reduceMotion ? 0 : 1}
+                floatIntensity={2}
+                rotationIntensity={1}
               />
             </div>
           </div>

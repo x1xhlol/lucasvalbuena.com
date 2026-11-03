@@ -6,6 +6,7 @@ import '../globals.css'
 
 import { ThemeProvider } from '@/components/theme-provider'
 import { MotionProvider } from '@/components/motion-provider'
+import { CommandPalette } from '@/components/command-palette'
 import { ConsoleEgg } from '@/components/console-egg'
 import { ScrambleEgg } from '@/components/scramble-egg'
 import { ExtractionEgg } from '@/components/extraction-egg'
@@ -40,6 +41,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   alternates: {
     canonical: '/',
+    types: { 'application/rss+xml': '/blog/rss.xml' },
   },
   openGraph: {
     type: 'website',
@@ -87,7 +89,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
@@ -103,8 +105,15 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <a
+            href="#main-content"
+            className="sr-only fixed left-4 top-4 z-[110] rounded-md bg-foreground text-background focus:not-sr-only focus:px-4 focus:py-3"
+          >
+            Skip to content
+          </a>
           <MotionProvider>
             {children}
+            <CommandPalette />
           </MotionProvider>
           <ConsoleEgg />
           <ScrambleEgg />

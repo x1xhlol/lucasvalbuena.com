@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import type { Metadata } from 'next'
 import type { BlogPost } from '@/components/blog-section'
+import { ViewTransition } from '@/lib/view-transition'
 
 export const metadata: Metadata = {
   title: 'Blog | Lucas Valbuena',
@@ -15,10 +16,12 @@ export const metadata: Metadata = {
   },
 }
 
-export const dynamic = 'force-dynamic'
+// ISR: serve the list from cache; new posts show up within a minute
+export const revalidate = 60
 
 export default async function BlogPage() {
   let posts: BlogPost[] = []
+  let loadFailed = false
   try {
     const payload = await getPayloadClient()
     const result = await payload.find({
@@ -38,41 +41,54 @@ export default async function BlogPage() {
       tags: post.tags ?? undefined,
     }))
   } catch {
-    posts = []
+    loadFailed = true
   }
 
   return (
     <div className="relative min-h-screen">
       <Navigation />
-      <main className="pt-32 pb-24">
+      <main id="main-content" tabIndex={-1} className="pt-32 pb-24">
         <div className="mx-auto max-w-2xl px-6">
-          <header className="mb-16 text-center">
-            <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-              Blog
+          <header className="mb-10">
+            <h1 className="text-base font-medium text-foreground">Writing</h1>
+            <p className="mt-1.5 text-base text-muted-foreground">
+              Thoughts on AI, open source, and security.
             </p>
           </header>
 
           {posts.length === 0 ? (
-            <div className="py-20 text-center">
-              <p className="text-sm text-muted-foreground">
-                No posts yet. Check back soon!
-              </p>
+            <div className="py-16 text-base text-muted-foreground">
+              <p>{loadFailed ? 'Posts could not be loaded.' : 'No posts published yet.'}</p>
+              <a
+                href={loadFailed ? '/blog' : '/'}
+                className="mt-3 inline-flex min-h-11 items-center text-foreground underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground"
+              >
+                {loadFailed ? 'Try again' : 'Back to the portfolio'}
+              </a>
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div
+              className="flex flex-col"
+            >
               {posts.map((post) => (
                 <Link
                   key={post.id}
                   href={`/blog/${post.slug}`}
-                  className="group flex items-baseline justify-between gap-4 py-4 -mx-3 px-3 rounded-md transition-colors duration-150 hover:bg-muted/40"
+                  className="group flex flex-col items-start gap-1 py-3 -mx-2 px-2 rounded-md transition-colors duration-150 hover:bg-muted/40 active:bg-muted/60 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
                 >
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {post.title}
-                  </span>
-                  {post.publishedAt && (
-                    <span className="text-xs font-mono text-muted-foreground shrink-0 tabular-nums">
-                      {format(new Date(post.publishedAt), 'MMM d, yyyy')}
+                  <ViewTransition
+                    name={post.slug ? `post-${post.slug}` : undefined}
+                    share="morph"
+                    default="none"
+                  >
+                    <span className="min-w-0 break-words text-pretty text-base font-medium text-foreground underline-offset-[5px] decoration-muted-foreground/65 group-hover:underline">
+                      {post.title}
                     </span>
+                  </ViewTransition>
+                  {post.publishedAt && (
+                    <time dateTime={post.publishedAt} className="text-sm text-muted-foreground shrink-0 tabular-nums">
+                      {format(new Date(post.publishedAt), 'MMM yyyy')}
+                    </time>
                   )}
                 </Link>
               ))}

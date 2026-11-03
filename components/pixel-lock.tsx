@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion } from 'motion/react'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { EASE_OUT } from '@/lib/motion'
 
 // Fired with {x, y} (viewport coords) when the little lock is clicked enough
 // times to escape; LockFamiliar listens and spawns the big one from there.
@@ -134,11 +136,14 @@ export function PixelLock({
   const greetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const greeted = useRef(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const reducedMotion = useReducedMotion()
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
   // Idle life: mostly blinking, sometimes a wink, the occasional glance
   useEffect(() => {
-    if (reducedMotion) return
+    if (reducedMotion) {
+      setFrame('idle')
+      return
+    }
     let alive = true
     let timer: ReturnType<typeof setTimeout>
 
@@ -260,17 +265,17 @@ export function PixelLock({
       type="button"
       onClick={onClick}
       animate={{
-        rotate: streak >= 2 ? [0, -streak * 2.5, streak * 2.5, -streak * 1.5, 0] : 0,
-        y: hopKey ? [0, -4, 0] : 0,
+        rotate: !reducedMotion && streak >= 2 ? [0, -streak * 2.5, streak * 2.5, -streak * 1.5, 0] : 0,
+        y: !reducedMotion && hopKey ? [0, -4, 0] : 0,
       }}
-      transition={{ duration: 0.35, ease: 'easeOut' }}
+      transition={{ duration: 0.35, ease: EASE_OUT }}
       aria-label={
         unlocked
           ? 'The padlock pops open, then thinks better of it'
           : 'A small pixel padlock. It is watching you.'
       }
       title={unlocked ? '…no. locked again.' : STREAK_TITLES[Math.min(streak, 4)]}
-      className={`inline-flex cursor-pointer rounded-sm outline-none transition-[color,transform] duration-150 ease-out active:scale-95 focus-visible:ring-2 focus-visible:ring-foreground/20 ${className ?? ''}`}
+      className={`relative inline-flex size-11 items-center justify-center cursor-pointer rounded-sm transition-[color,scale] duration-150 ease-out motion-safe:active:scale-[0.97] ${className ?? ''}`}
     >
       <PixelLockSprite frame={unlocked ? 'open' : frame} size={size} />
     </motion.button>

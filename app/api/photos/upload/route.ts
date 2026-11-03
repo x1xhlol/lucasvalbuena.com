@@ -1,6 +1,7 @@
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { isValidSession, ADMIN_COOKIE } from '@/lib/photos'
+import { PHOTO_CONTENT_TYPES, MAX_PHOTO_SIZE } from '@/lib/photo-upload'
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as HandleUploadBody
@@ -16,15 +17,8 @@ export async function POST(request: NextRequest) {
         }
 
         return {
-          allowedContentTypes: [
-            'image/jpeg',
-            'image/png',
-            'image/webp',
-            'image/heic',
-            'image/heif',
-            'image/avif',
-          ],
-          maximumSizeInBytes: 500 * 1024 * 1024, // 500 MB
+          allowedContentTypes: [...PHOTO_CONTENT_TYPES],
+          maximumSizeInBytes: MAX_PHOTO_SIZE,
         }
       },
       onUploadCompleted: async () => {

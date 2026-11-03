@@ -1,21 +1,25 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { upload } from '@vercel/blob/client'
-import exifr from 'exifr'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { Photo, PhotoMetadata } from '@/lib/photos'
+import { PHOTO_CONTENT_TYPES, MAX_PHOTO_SIZE } from '@/lib/photo-upload'
+import { stripLocation } from '@/lib/photo-privacy'
 
 interface PhotoUploadProps {
   onUploaded: (photo: Photo) => void
 }
 
+type UploadedPhoto = Pick<Photo, 'url' | 'metadata' | 'width' | 'height'>
+
 interface PreviewFile {
   file: File
   preview: string
+  uploaded?: UploadedPhoto
 }
 
 function dmsToDecimal(parts: number[]): number {
@@ -27,7 +31,7 @@ function normalizeCoordinate(value: unknown, ref: unknown, negativeRef: 'S' | 'W
   if (typeof value === 'number') return value
 
   if (Array.isArray(value) && value.every((part) => typeof part === 'number')) {
-    const decimal = dmsToDecimal(value as number[])
+    const decimal = dmsToDecimal(value)
     if (typeof ref === 'string' && ref.toUpperCase() === negativeRef) return -decimal
     return decimal
   }
@@ -62,6 +66,7 @@ async function extractMetadata(file: File): Promise<{
   let height = 0
 
   try {
+    const { default: exifr } = await import('exifr')
     const exif = await exifr.parse(file, {
       pick: [
         'Make', 'Model', 'LensModel', 'LensMake',
@@ -108,17 +113,33 @@ async function extractMetadata(file: File): Promise<{
       width = exif.ExifImageWidth || exif.ImageWidth || 0
       height = exif.ExifImageHeight || exif.ImageHeight || 0
     }
-  } catch {}
+  } catch {
+    // EXIF is optional; images without readable metadata can still be uploaded.
+  }
 
   if (!width || !height) {
     try {
       const dims = await getImageDimensions(file)
       width = dims.width
       height = dims.height
-    } catch {}
+    } catch {
+      // Formats the browser cannot decode keep the gallery's fallback dimensions.
+    }
   }
 
   return { metadata, width, height }
+}
+
+// The file that gets uploaded: GPS is removed here, so it never leaves the
+// device. The coordinates read above go to the server only to be turned into
+// a place name.
+async function withoutLocation(file: File): Promise<File> {
+  const bytes = stripLocation(new Uint8Array(await file.arrayBuffer()))
+  const { default: exifr } = await import('exifr')
+  // Formats exifr can't read (WebP) rely on stripLocation alone
+  const gps = await exifr.gps(bytes).catch(() => undefined)
+  if (gps?.latitude != null) throw new Error(`GPS left in ${file.name}`)
+  return new File([bytes], file.name, { type: file.type, lastModified: file.lastModified })
 }
 
 function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
@@ -142,197 +163,188 @@ export function PhotoUpload({ onUploaded }: PhotoUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const previewUrlsRef = useRef(new Set<string>())
+
+  useEffect(() => {
+    const urls = previewUrlsRef.current
+    return () => urls.forEach((url) => URL.revokeObjectURL(url))
+  }, [])
 
   const addFiles = useCallback((newFiles: FileList | File[]) => {
-    const imageFiles = Array.from(newFiles).filter((f) =>
-      f.type.startsWith('image/'),
+    if (uploading) return
+    const imageFiles = Array.from(newFiles).filter((file) =>
+      PHOTO_CONTENT_TYPES.some((type) => type === file.type) && file.size <= MAX_PHOTO_SIZE,
     )
-    const previews: PreviewFile[] = imageFiles.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }))
-    setFiles((prev) => [...prev, ...previews])
-  }, [])
-
-  const removeFile = useCallback((index: number) => {
-    setFiles((prev) => {
-      const removed = prev[index]
-      URL.revokeObjectURL(removed.preview)
-      return prev.filter((_, i) => i !== index)
+    if (imageFiles.length !== newFiles.length) {
+      toast.error('Some files were skipped. Choose JPG, PNG, WebP, HEIF, or AVIF images up to 500 MB each.')
+    }
+    const previews = imageFiles.map((file) => {
+      const preview = URL.createObjectURL(file)
+      previewUrlsRef.current.add(preview)
+      return { file, preview }
     })
-  }, [])
+    setFiles((previous) => [...previous, ...previews])
+  }, [uploading])
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      setDragOver(false)
-      if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files)
-    },
-    [addFiles],
-  )
+  function releasePreview(preview: string) {
+    URL.revokeObjectURL(preview)
+    previewUrlsRef.current.delete(preview)
+  }
+
+  function removeFile(preview: string) {
+    releasePreview(preview)
+    setFiles((previous) => previous.filter((file) => file.preview !== preview))
+  }
 
   const handleUpload = async () => {
-    if (!files.length) return
+    if (!files.length || uploading) return
     setUploading(true)
 
-    const results = await Promise.allSettled(
-      files.map(async ({ file }) => {
-        const { metadata, width, height } = await extractMetadata(file)
-
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-        const id = Math.random().toString(36).slice(2, 14)
-        const blob = await upload(`photos/${id}.${ext}`, file, {
-          access: 'public',
-          handleUploadUrl: '/api/photos/upload',
-        })
-
-        return { url: blob.url, metadata, width, height }
-      }),
-    )
-
-    const succeeded = results
-      .filter((r): r is PromiseFulfilledResult<{ url: string; metadata: PhotoMetadata; width: number; height: number }> => r.status === 'fulfilled')
-      .map((r) => r.value)
-
-    const failCount = results.length - succeeded.length
-    if (failCount > 0) {
-      toast.error(`${failCount} photo${failCount > 1 ? 's' : ''} failed to upload`)
+    async function uploadPhoto(preview: PreviewFile): Promise<UploadedPhoto> {
+      // A failed gallery save can retry without uploading the same file again.
+      if (preview.uploaded) return preview.uploaded
+      const { file } = preview
+      const { metadata, width, height } = await extractMetadata(file)
+      const clean = await withoutLocation(file).catch((error: unknown) => {
+        toast.error(`Could not remove the location from ${file.name}, so it was not uploaded.`)
+        throw error
+      })
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const blob = await upload(`photos/${crypto.randomUUID()}.${ext}`, clean, {
+        access: 'public',
+        handleUploadUrl: '/api/photos/upload',
+      })
+      return { url: blob.url, metadata, width, height }
     }
 
-    if (succeeded.length > 0) {
-      try {
-        const res = await fetch('/api/photos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(succeeded),
-        })
-
-        if (!res.ok) {
-          const data = await res.json()
-          toast.error(`Failed to save photos: ${data.error}`)
-        } else {
-          const photos: Photo[] = await res.json()
-          photos.forEach((p) => onUploaded(p))
-          toast.success(
-            `${photos.length} photo${photos.length > 1 ? 's' : ''} uploaded`,
-          )
-        }
-      } catch {
-        toast.error('Failed to save photos')
+    try {
+      const results: PromiseSettledResult<UploadedPhoto>[] = []
+      for (let offset = 0; offset < files.length; offset += 3) {
+        results.push(...await Promise.allSettled(files.slice(offset, offset + 3).map(uploadPhoto)))
       }
-    }
+      const queued = files.map((file, index) => {
+        const result = results[index]
+        return result.status === 'fulfilled' ? { ...file, uploaded: result.value } : file
+      })
+      setFiles(queued)
 
-    files.forEach((f) => URL.revokeObjectURL(f.preview))
-    setFiles([])
-    setUploading(false)
+      const uploaded = queued.flatMap((file) => file.uploaded ? [file.uploaded] : [])
+      const failedCount = queued.length - uploaded.length
+      if (failedCount) {
+        toast.error(`${failedCount} photo${failedCount === 1 ? '' : 's'} could not upload. They are still selected so you can try again.`)
+      }
+      if (!uploaded.length) return
+
+      const res = await fetch('/api/photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(uploaded),
+      })
+      if (!res.ok) throw new Error('Photos could not be saved')
+      const photos: Photo[] = await res.json()
+      photos.forEach(onUploaded)
+      queued.filter((file) => file.uploaded).forEach((file) => releasePreview(file.preview))
+      setFiles(queued.filter((file) => !file.uploaded))
+      toast.success(`${photos.length} photo${photos.length === 1 ? '' : 's'} added to your gallery`)
+    } catch {
+      toast.error('Could not save the photos to your gallery. Your selection is still here; try again.')
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
-    <div className="space-y-6">
-      <div
-        onDragOver={(e) => {
-          e.preventDefault()
-          setDragOver(true)
+    <div className="space-y-6" aria-busy={uploading}>
+      <button
+        type="button"
+        disabled={uploading}
+        aria-labelledby="photo-upload-label"
+        aria-describedby="photo-upload-formats"
+        onDragOver={(event) => {
+          event.preventDefault()
+          if (!uploading) setDragOver(true)
         }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
+        onDrop={(event) => {
+          event.preventDefault()
+          setDragOver(false)
+          addFiles(event.dataTransfer.files)
+        }}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          'relative rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer',
-          'flex flex-col items-center justify-center gap-3 p-10',
-          dragOver
-            ? 'border-foreground/30 bg-muted/20'
-            : 'border-border hover:border-foreground/15 hover:bg-muted/10',
+          'flex w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-8 transition-[border-color,background-color] duration-150 disabled:cursor-wait sm:p-10',
+          dragOver ? 'border-foreground bg-muted' : 'border-input hover:border-foreground hover:bg-muted/40',
         )}
       >
-        <div className="w-12 h-12 rounded-full border border-border bg-muted/20 flex items-center justify-center">
-          <Upload className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <div className="text-center">
-          <p className="text-sm font-medium text-foreground">
-            Drop photos here or click to browse
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            JPG, PNG, WebP, HEIF - up to 500 MB
-          </p>
-        </div>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files?.length) addFiles(e.target.files)
-            e.target.value = ''
-          }}
-        />
-      </div>
+        <Upload className="size-6 text-muted-foreground" aria-hidden />
+        <span id="photo-upload-label" className="text-base font-medium text-foreground">
+          Choose photos or drop them here
+        </span>
+        <span id="photo-upload-formats" className="text-sm text-muted-foreground">
+          JPG, PNG, WebP, HEIF, or AVIF. Up to 500 MB per photo.
+        </span>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={PHOTO_CONTENT_TYPES.join(',')}
+        multiple
+        disabled={uploading}
+        aria-label="Choose photos"
+        className="hidden"
+        onChange={(event) => {
+          if (event.target.files?.length) addFiles(event.target.files)
+          event.target.value = ''
+        }}
+      />
 
       {files.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground font-mono">
-              {files.length} file{files.length > 1 ? 's' : ''} selected
+          <div className="flex items-center justify-between gap-4">
+            <p role="status" className="text-sm text-muted-foreground tabular-nums">
+              {files.length} photo{files.length === 1 ? '' : 's'} selected
             </p>
             <Button
               variant="ghost"
               size="sm"
+              disabled={uploading}
               onClick={() => {
-                files.forEach((f) => URL.revokeObjectURL(f.preview))
+                files.forEach((file) => releasePreview(file.preview))
                 setFiles([])
               }}
-              className="text-xs text-muted-foreground hover:text-foreground"
             >
               Clear all
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {files.map((pf, i) => (
-              <div
-                key={i}
-                className="relative group rounded-lg overflow-hidden border border-border bg-muted/10"
-              >
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {files.map((file) => (
+              <figure key={file.preview} className="relative min-w-0">
                 <img
-                  src={pf.preview}
+                  src={file.preview}
                   alt=""
-                  className="w-full h-auto block"
+                  loading="lazy"
+                  className="image-outline block aspect-square w-full rounded-lg bg-muted object-cover"
                 />
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    removeFile(i)
-                  }}
-                  className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-white/80 hover:bg-black/80 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  type="button"
+                  aria-label={`Remove ${file.file.name}`}
+                  disabled={uploading}
+                  onClick={() => removeFile(file.preview)}
+                  className="absolute right-1 top-1 inline-flex size-11 items-center justify-center rounded-full bg-black/70 text-white transition-[background-color,scale] duration-150 hover:bg-black/85 motion-safe:active:scale-[0.97] disabled:cursor-wait"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="size-4" aria-hidden />
                 </button>
-                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent px-2 py-1.5">
-                  <p className="text-[10px] font-mono text-white/70 truncate">
-                    {pf.file.name}
-                  </p>
-                </div>
-              </div>
+                <figcaption title={file.file.name} className="mt-2 truncate text-xs text-muted-foreground">
+                  {file.file.name}
+                </figcaption>
+              </figure>
             ))}
           </div>
 
-          <Button
-            onClick={handleUpload}
-            disabled={uploading}
-            className="w-full h-11 rounded-lg font-medium"
-          >
-            {uploading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload {files.length} photo{files.length > 1 ? 's' : ''}
-              </>
-            )}
+          <Button onClick={handleUpload} disabled={uploading} className="h-11 w-full">
+            {uploading ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> : <Upload className="size-4" aria-hidden />}
+            {uploading ? 'Uploading…' : `Upload ${files.length} photo${files.length === 1 ? '' : 's'}`}
           </Button>
         </div>
       )}

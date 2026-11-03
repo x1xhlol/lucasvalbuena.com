@@ -7,6 +7,7 @@ import {
   ADMIN_COOKIE,
   type PhotoMetadata,
 } from '@/lib/photos'
+import { toPlaceName } from '@/lib/geocode'
 
 export async function PATCH(
   request: NextRequest,
@@ -37,7 +38,12 @@ export async function PATCH(
       photo.metadata = {}
     }
 
-    for (const [key, value] of Object.entries(body.metadata)) {
+    for (const [key, raw] of Object.entries(body.metadata)) {
+      // Coordinates typed into the location field become a place name
+      const value = key === 'location' && typeof raw === 'string' ? await toPlaceName(raw) : raw
+      if (key === 'location' && typeof raw === 'string' && raw.trim() && !value) {
+        return NextResponse.json({ error: 'No place found at those coordinates' }, { status: 422 })
+      }
       if (value === null || value === undefined || value === '') {
         delete photo.metadata[key as keyof PhotoMetadata]
       } else {

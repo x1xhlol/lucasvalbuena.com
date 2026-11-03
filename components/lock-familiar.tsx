@@ -5,16 +5,17 @@ import {
   AnimatePresence,
   motion,
   useMotionValue,
-  useReducedMotion,
   useSpring,
   useTransform,
   useVelocity,
-} from 'framer-motion'
+} from 'motion/react'
 import {
   LOCK_SUMMON_EVENT,
   PixelLockSprite,
   type LockFrame,
 } from '@/components/pixel-lock'
+import { EASE_IN_OUT, EASE_OUT } from '@/lib/motion'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 const SIZE = 80
 // Trails below-right of the cursor so it never sits under what you point at
@@ -36,7 +37,7 @@ export function LockFamiliar() {
   const [caught, setCaught] = useState(false)
   const [frame, setFrame] = useState<LockFrame>('happy')
   const [asleep, setAsleep] = useState(false)
-  const reducedMotion = useReducedMotion()
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
   const targetX = useMotionValue(-200)
   const targetY = useMotionValue(-200)
@@ -68,7 +69,7 @@ export function LockFamiliar() {
 
   useEffect(() => {
     const onSummon = (e: Event) => {
-      if (activeRef.current) return
+      if (activeRef.current || reducedMotion) return
       const detail = (e as CustomEvent<SummonDetail>).detail
       modeRef.current = detail.mode ?? 'cursor'
       x.jump(detail.x)
@@ -88,9 +89,17 @@ export function LockFamiliar() {
     }
     window.addEventListener(LOCK_SUMMON_EVENT, onSummon)
     return () => window.removeEventListener(LOCK_SUMMON_EVENT, onSummon)
-  }, [targetX, targetY, x, y])
+  }, [targetX, targetY, x, y, reducedMotion])
 
   useEffect(() => {
+    if (reducedMotion) {
+      x.stop()
+      y.stop()
+      tilt.stop()
+      activeRef.current = false
+      setActive(false)
+      return
+    }
     if (!active) return
     const wander = modeRef.current === 'wander'
 
@@ -198,7 +207,7 @@ export function LockFamiliar() {
       if (leaveTimer) clearTimeout(leaveTimer)
       clearInterval(tick)
     }
-  }, [active, dismiss, targetX, targetY, x, y])
+  }, [active, dismiss, targetX, targetY, x, y, tilt, reducedMotion])
 
   if (reducedMotion) return null
 
@@ -230,7 +239,7 @@ export function LockFamiliar() {
           }
           transition={
             caught
-              ? { duration: 0.55, times: [0, 0.35, 1], ease: 'easeInOut' }
+              ? { duration: 0.55, times: [0, 0.35, 1], ease: EASE_IN_OUT }
               : { type: 'spring', duration: 0.5, bounce: 0.35 }
           }
           onAnimationComplete={() => {
@@ -249,7 +258,7 @@ export function LockFamiliar() {
               className="absolute -top-3 -right-1 select-none font-geist-pixel text-sm text-muted-foreground"
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: [0, 1, 0], y: -12 }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: EASE_OUT }}
             >
               z
             </motion.span>

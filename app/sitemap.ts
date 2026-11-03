@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { siteConfig } from '@/lib/site'
 import { getPayloadClient } from '@/lib/payload'
+import { ASK_ENABLED } from '@/lib/ask/protocol'
 
 // Posts are published from the CMS, so a statically generated sitemap would
 // freeze the list at build time.
@@ -58,6 +59,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.7,
     },
+    ...(ASK_ENABLED
+      ? [{ url: `${siteConfig.url}/ask`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.5 }]
+      : []),
     ...(await getPostEntries()),
   ]
 }

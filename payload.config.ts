@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url'
 import { Users } from './collections/Users'
 import { Posts } from './collections/Posts'
 import { Media } from './collections/Media'
+import { AskQuestions } from './collections/AskQuestions'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -31,13 +32,17 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Posts, Media],
+  collections: [Users, Posts, Media, AskQuestions],
   secret: payloadSecret,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: postgresAdapter({
+    // Dev servers push schema changes straight into their own database. Ship a
+    // change by running `bun run migrate:create <name>` and committing the
+    // file; the Vercel build applies pending migrations with `payload migrate`.
     push: true,
+    migrationDir: path.resolve(dirname, 'migrations'),
     pool: {
       connectionString: databaseUrl,
     },

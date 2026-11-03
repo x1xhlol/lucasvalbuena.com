@@ -1,17 +1,6 @@
 'use client'
 
-import {
-  Star,
-  GitFork,
-  ArrowUpRight,
-  Calendar,
-  Plus,
-  Shield,
-  Code2,
-  Maximize2,
-  X,
-  type LucideIcon,
-} from 'lucide-react'
+import { Star, GitFork, ArrowUpRight, Maximize2, X } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -19,16 +8,18 @@ import {
   DialogTitle,
   DialogClose,
 } from '@/components/ui/dialog'
+import Image from 'next/image'
 import { Drawer } from 'vaul'
-import { AnimatePresence, motion } from 'framer-motion'
-import { EASE_OUT } from '@/lib/motion'
-import { formatGithubThousands } from '@/lib/github-api'
+import { AnimatePresence, motion } from 'motion/react'
+import { EASE_OUT, SPRING_MORPH } from '@/lib/motion'
+import { hasCount, type RepoStats } from '@/lib/github-api'
+import { PROJECTS, type ProjectData } from '@/lib/projects'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { Section } from '@/components/section'
 import { useEffect, useRef, useState } from 'react'
 
 // Shared-element morph between a project row and its details panel
-const MORPH = { type: 'spring', duration: 0.45, bounce: 0.15 } as const
+const MORPH = SPRING_MORPH
 
 // Panel content fades in after the card morph is underway, and drops out
 // quickly before the card shrinks back into the row
@@ -38,20 +29,8 @@ const contentFade = {
   exit: { opacity: 0, transition: { duration: 0.1, ease: EASE_OUT } },
 } as const
 
-interface Project {
-  title: string
-  description: string
-  fullDescription: string
-  image?: string
-  stats?: {
-    stars: string
-    forks: string
-  } | null
-  links: {
-    github?: string
-    demo?: string
-  }
-  icon: LucideIcon
+interface Project extends ProjectData {
+  stats: RepoStats | null
 }
 
 function ProjectLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -60,13 +39,13 @@ function ProjectLink({ href, children }: { href: string; children: React.ReactNo
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group inline-flex items-center gap-[3px] text-[13px] font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 rounded-sm"
+      className="group inline-flex min-h-11 items-center gap-[3px] text-[13px] font-medium text-foreground rounded-sm"
     >
       <span className="underline underline-offset-[5px] decoration-muted-foreground/65 group-hover:decoration-foreground transition-colors">
         {children}
       </span>
       <ArrowUpRight
-        className="h-[11px] w-[11px] shrink-0 text-muted-foreground/70 transition-[color,transform] duration-150 ease-out group-hover:text-foreground group-hover:translate-x-[1px] group-hover:-translate-y-[1px]"
+        className="h-[11px] w-[11px] shrink-0 text-muted-foreground/70 transition-[color,transform,translate,scale] duration-150 ease-out group-hover:text-foreground motion-safe:pointer-fine:group-hover:translate-x-[1px] motion-safe:pointer-fine:group-hover:-translate-y-[1px]"
         aria-hidden
       />
     </a>
@@ -88,19 +67,20 @@ function ProjectImage({ src, alt }: { src: string; alt: string }) {
   }
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      ref={(el) => {
-        // onLoad doesn't fire for images already complete before hydration
-        if (el?.complete) setLoaded(true)
-      }}
-      onLoad={() => setLoaded(true)}
-      onError={() => setErrored(true)}
-      className={`h-full w-full object-contain transition-opacity duration-200 ease-out ${
-        loaded ? 'opacity-100' : 'opacity-0'
-      }`}
-    />
+    <span className="relative block h-full w-full">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="(max-width: 640px) 100vw, 576px"
+        quality={95}
+        onLoad={() => setLoaded(true)}
+        onError={() => setErrored(true)}
+        className={`object-contain transition-opacity duration-200 ease-out ${
+          loaded ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+    </span>
   )
 }
 
@@ -115,22 +95,23 @@ function ProjectFooter({ project }: { project: Project }) {
           <ProjectLink href={project.links.github}>Source</ProjectLink>
         )}
       </div>
-      {project.stats && (
+      {project.links.paper && (
+        <ProjectLink href={project.links.paper}>Paper</ProjectLink>
+      )}
+      {project.stats && hasCount(project.stats.stars) && (
         <div className="flex items-center gap-3.5 text-xs text-muted-foreground">
-          <span
-            className="inline-flex items-center gap-1"
-            aria-label={`${project.stats.stars} stars`}
-          >
+          <span className="inline-flex items-center gap-1">
             <Star className="h-3 w-3" aria-hidden />
-            <span className="font-mono tabular-nums">{project.stats.stars}</span>
+            <span className="tabular-nums">{project.stats.stars}</span>
+            <span className="sr-only">stars</span>
           </span>
-          <span
-            className="inline-flex items-center gap-1"
-            aria-label={`${project.stats.forks} forks`}
-          >
-            <GitFork className="h-3 w-3" aria-hidden />
-            <span className="font-mono tabular-nums">{project.stats.forks}</span>
-          </span>
+          {hasCount(project.stats.forks) && (
+            <span className="inline-flex items-center gap-1">
+              <GitFork className="h-3 w-3" aria-hidden />
+              <span className="tabular-nums">{project.stats.forks}</span>
+              <span className="sr-only">forks</span>
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -189,27 +170,27 @@ function ProjectDetails({
   )
 }
 
-const STATS_REPOS = [
-  'x1xhlol/system-prompts-and-models-of-ai-tools',
-  'x1xhlol/zero-calendar',
-  'x1xhlol/better-clawd',
-]
-
-export function Projects() {
-  const [repoStats, setRepoStats] = useState<
-    Record<string, { stars: string; forks: string }>
-  >({})
+// Stars and forks come from the server (getProjectStats), cached there for
+// ten minutes, so visitors' browsers never call GitHub themselves
+export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
   const [enlargedImage, setEnlargedImage] = useState<{
     src: string
     alt: string
   } | null>(null)
+  const [enlargedImageOpen, setEnlargedImageOpen] = useState(false)
+  const showImage = (image: { src: string; alt: string }) => {
+    imageReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setEnlargedImage(image)
+    setEnlargedImageOpen(true)
+  }
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 640px)')
   const panelRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
+  const imageReturnFocusRef = useRef<HTMLElement | null>(null)
   const enlargedOpenRef = useRef(false)
-  enlargedOpenRef.current = Boolean(enlargedImage)
+  enlargedOpenRef.current = enlargedImageOpen
 
   const desktopPanelOpen = detailsOpen && isDesktop
 
@@ -221,9 +202,10 @@ export function Projects() {
     panelRef.current?.focus({ preventScroll: true })
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || enlargedOpenRef.current) return
       if (e.key === 'Escape') {
         // The image preview dialog stacks on top and handles its own Escape
-        if (!enlargedOpenRef.current) setDetailsOpen(false)
+        setDetailsOpen(false)
         return
       }
       if (e.key !== 'Tab') return
@@ -254,108 +236,29 @@ export function Projects() {
     }
   }, [desktopPanelOpen])
 
+  // Warm the raw full-res URL for the enlarge dialog only once its project's
+  // details are open; the inline screenshot loads resized through next/image
   useEffect(() => {
-    const fetchRepoStats = async (repo: string) => {
-      try {
-        const response = await fetch(`https://api.github.com/repos/${repo}`, {
-          headers: {
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-          },
-        })
-        const data = (await response.json()) as {
-          message?: string
-          stargazers_count?: number
-          forks_count?: number
-        }
-
-        if (!response.ok || typeof data.stargazers_count !== 'number') {
-          setRepoStats((prev) => ({ ...prev, [repo]: { stars: '—', forks: '—' } }))
-          return
-        }
-
-        const stars = formatGithubThousands(data.stargazers_count)
-        setRepoStats((prev) => ({
-          ...prev,
-          [repo]: {
-            stars,
-            forks:
-              typeof data.forks_count === 'number'
-                ? formatGithubThousands(data.forks_count)
-                : '—',
-          },
-        }))
-      } catch (error) {
-        console.error(`Failed to fetch GitHub stats for ${repo}:`, error)
-        setRepoStats((prev) => ({ ...prev, [repo]: { stars: '—', forks: '—' } }))
-      }
+    if (!detailsOpen || activeIndex === null) return
+    const image = projects[activeIndex]?.image
+    if (image) {
+      const img = new window.Image()
+      img.src = image
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailsOpen, activeIndex])
 
-    STATS_REPOS.forEach(fetchRepoStats)
-  }, [])
-
-  useEffect(() => {
-    projects.forEach((project) => {
-      if (project.image) {
-        const img = new Image()
-        img.src = project.image
-      }
-    })
-  }, [])
-
-  const projects: Project[] = [
-    {
-      title: 'System Prompts and Models of AI Tools',
-      description: 'Reverse-engineered system prompts from v0, Cursor, Windsurf, and other AI coding tools.',
-      fullDescription: 'I pull the system prompts out of AI coding assistants and write them up here. Tools like v0, Cursor, Manus, and Windsurf all ship hidden instructions that shape everything their model does, and you can read all of them in this repo.',
-      image: 'https://xobhe5j5syssmps0.public.blob.vercel-storage.com/Screenshot%202026-01-07%20152543.png',
-      stats: repoStats['x1xhlol/system-prompts-and-models-of-ai-tools'] ?? null,
-      links: {
-        github: 'https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools',
-      },
-      icon: Code2,
-    },
-    {
-      title: 'ZeroLeaks',
-      description: 'Tests LLM apps for prompt injection and system-prompt leaks.',
-      fullDescription: 'A security platform for companies running LLMs in production. It attacks your deployment the way a real attacker would, with prompt injection and extraction, then reports which parts of your system prompt came back out and how to close the gap.',
-      image: '/projects/zeroleaks.png',
-      links: {
-        github: 'https://github.com/ZeroLeaks/zeroleaks',
-        demo: 'https://zeroleaks.ai',
-      },
-      icon: Shield,
-    },
-    {
-      title: 'Zero Calendar',
-      description: 'Open-source calendar that turns a plain sentence into an event.',
-      fullDescription: 'An open-source calendar. Instead of clicking through date pickers, you type "lunch with Alex next Tuesday at noon" and it creates the event. It syncs with Google Calendar and handles recurring events.',
-      image: '/projects/zero-calendar.png',
-      stats: repoStats['x1xhlol/zero-calendar'] ?? null,
-      links: {
-        github: 'https://github.com/x1xhlol/zero-calendar',
-      },
-      icon: Calendar,
-    },
-    {
-      title: 'Better-Clawd',
-      description: 'Claude Code fork with no telemetry and a choice of model providers.',
-      fullDescription: 'An independent Claude Code fork. It keeps the CLI that already worked, strips out the telemetry, and runs against OpenAI, OpenRouter, or Anthropic so you are not locked to one provider.',
-      image: '/projects/better-clawd-terminal.png',
-      stats: repoStats['x1xhlol/better-clawd'] ?? null,
-      links: {
-        github: 'https://github.com/x1xhlol/better-clawd',
-      },
-      icon: Code2,
-    },
-  ]
+  const projects: Project[] = PROJECTS.map((project) => ({
+    ...project,
+    stats: project.repo ? (stats[project.repo] ?? null) : null,
+  }))
 
   const activeProject = activeIndex === null ? null : projects[activeIndex]
 
   return (
     <>
-      <Section id="projects" label="Projects" labelClassName="lg:pt-2">
-        <div className="flex flex-col">
+      <Section id="projects" label="Projects">
+        <div className="flex flex-col gap-2">
           {projects.map((project, index) => (
             <motion.button
               key={project.title}
@@ -364,28 +267,24 @@ export function Projects() {
               style={{ borderRadius: 8 }}
               type="button"
               aria-haspopup="dialog"
-              onClick={() => {
+              onClick={(event) => {
+                returnFocusRef.current = event.currentTarget
                 setActiveIndex(index)
                 setDetailsOpen(true)
               }}
-              className="group relative w-full text-left cursor-pointer py-2 -mx-2 px-2 rounded-md transition-colors duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+              className="group relative w-full text-left cursor-pointer py-2 -mx-2 px-2 rounded-md transition-colors duration-150 hover:bg-muted/40 active:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
             >
-              <div className="flex items-center gap-1.5 leading-snug">
-                {/* Inline on desktop; below sm the description drops to its own
-                    line rather than clamping to a couple of useless characters */}
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-1.5">
-                  <motion.span
-                    layoutId={`project-title-${index}`}
-                    transition={MORPH}
-                    className="text-sm font-medium text-foreground sm:shrink-0"
-                  >
-                    {project.title}
-                  </motion.span>
-                  <span className="text-sm text-muted-foreground line-clamp-1">
-                    {project.description}
-                  </span>
-                </div>
-                <Plus className="h-3 w-3 text-muted-foreground/60 group-hover:text-foreground transition-[color,opacity,transform] duration-150 ease-out shrink-0 self-center opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 pointer-coarse:opacity-100 pointer-coarse:scale-100" />
+              <div className="flex min-w-0 flex-col gap-0.5 leading-snug">
+                <motion.span
+                  layoutId={`project-title-${index}`}
+                  transition={MORPH}
+                  className="w-fit text-base font-medium text-foreground"
+                >
+                  {project.title}
+                </motion.span>
+                <span className="text-base text-muted-foreground text-pretty">
+                  {project.description}
+                </span>
               </div>
             </motion.button>
           ))}
@@ -399,7 +298,7 @@ export function Projects() {
               key="project-overlay"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.15, ease: EASE_OUT } }}
               transition={{ duration: 0.25, ease: EASE_OUT }}
               className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
               onClick={() => setDetailsOpen(false)}
@@ -436,7 +335,7 @@ export function Projects() {
                         type="button"
                         aria-label={`Open ${activeProject.title} image preview`}
                         onClick={() =>
-                          setEnlargedImage({
+                          showImage({
                             src: activeProject.image!,
                             alt: activeProject.title,
                           })
@@ -461,7 +360,7 @@ export function Projects() {
                   type="button"
                   aria-label="Close"
                   onClick={() => setDetailsOpen(false)}
-                  className="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground backdrop-blur transition-colors duration-150 hover:bg-muted/80 hover:text-foreground outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+                  className="touch-target absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground backdrop-blur transition-colors duration-150 hover:bg-muted/80 hover:text-foreground outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
                 >
                   <X className="h-3.5 w-3.5" />
                 </motion.button>
@@ -473,8 +372,14 @@ export function Projects() {
 
       <Drawer.Root open={detailsOpen && !isDesktop} onOpenChange={setDetailsOpen}>
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px]" />
-          <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col rounded-t-[20px] border-t border-border bg-background outline-none">
+          <Drawer.Overlay className="motion-drawer-overlay fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px]" />
+          <Drawer.Content
+            onCloseAutoFocus={(event) => {
+              event.preventDefault()
+              returnFocusRef.current?.focus({ preventScroll: true })
+            }}
+            className="motion-drawer fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col rounded-t-[20px] border-t border-border bg-background outline-none"
+          >
             <div
               aria-hidden
               className="mx-auto mt-3 h-1 w-9 shrink-0 rounded-full bg-muted-foreground/25"
@@ -485,7 +390,7 @@ export function Projects() {
                   project={activeProject}
                   Title={Drawer.Title}
                   Description={Drawer.Description}
-                  onEnlarge={setEnlargedImage}
+                  onEnlarge={showImage}
                 />
               </div>
             )}
@@ -494,16 +399,17 @@ export function Projects() {
       </Drawer.Root>
 
       <Dialog
-        open={Boolean(enlargedImage)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setEnlargedImage(null)
-          }
-        }}
+        open={enlargedImageOpen}
+        // Keep the screenshot mounted through the dialog's exit animation.
+        onOpenChange={setEnlargedImageOpen}
       >
         <DialogContent
           showCloseButton={false}
-          className="max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-3rem)]"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            imageReturnFocusRef.current?.focus({ preventScroll: true })
+          }}
+          className="max-w-[calc(100vw-1rem)] overflow-hidden p-0 sm:max-w-[calc(100vw-3rem)]"
         >
           <DialogTitle className="sr-only">
             {enlargedImage ? `${enlargedImage.alt} image preview` : 'Project image preview'}
@@ -522,7 +428,7 @@ export function Projects() {
           )}
           <DialogClose
             aria-label="Close"
-            className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+            className="touch-target absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
           >
             <X className="size-3.5" />
           </DialogClose>
