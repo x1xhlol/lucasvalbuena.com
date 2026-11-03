@@ -31,8 +31,6 @@ interface PhotoLightboxProps {
   onClose: () => void
   onPrev: () => void
   onNext: () => void
-  // Only the photo the lightbox opened on morphs from its grid tile; after
-  // prev/next the shared element is gone and open/close falls back to fades
   morphPhotoId?: string | null
 }
 
@@ -64,7 +62,6 @@ function formatDate(iso: string): string {
 }
 
 function formatAperture(raw: string): string {
-  // "f/1.7799999713880652" -> "f/1.8"
   const match = raw.match(/f\/([\d.]+)/)
   if (!match) return raw
   const num = parseFloat(match[1])
@@ -75,23 +72,12 @@ const MIN_ZOOM = 1
 const MAX_ZOOM = 5
 const ZOOM_STEP = 0.5
 const DOUBLE_CLICK_ZOOM = 2.5
-// Dragging past the pan boundary moves the image at a fraction of the pointer
-// so the edge is felt as rising resistance, not a hard stop
 const OVERSCROLL_RESISTANCE = 0.3
-// A committed swipe hands off: the next photo enters from the swipe side and
-// keeps the finger's release velocity. Faster flicks start further out so the
-// carried velocity is absorbed by distance instead of overshooting center
 const SWIPE_ENTER_OFFSET = 24
 const SWIPE_MAX_VELOCITY = 2000
 const SWIPE_VELOCITY_TO_OFFSET = 1 / 50
-// The metadata sheet follows the finger 1:1 and settles with the release
-// velocity; a flick past this speed commits regardless of distance
 const SHEET_FLICK_VELOCITY = 0.11
-// Above the browser's own click slop (~8-15px) so an imprecise tap stays a
-// tap for both this handler and the synthetic click
 const SHEET_TAP_SLOP = 12
-// A gesture's leftover synthetic click lands right after touchend; clicks
-// arriving later come from a mouse, keyboard, or assistive tech
 const SHEET_CLICK_SUPPRESS_MS = 500
 const SHEET_SPRING = { type: 'spring', duration: 0.35, bounce: 0 } as const
 const LIGHTBOX_QUALITY = 100
@@ -134,8 +120,6 @@ export function PhotoLightbox({
     panY.set(next.y)
   }, [panX, panY])
   const [isMobileMetadataExpanded, setIsMobileMetadataExpanded] = useState(false)
-  // State (not a ref) so releasing the drag re-renders and restores the
-  // transform transition for the settle-back
   const [isPanning, setIsPanning] = useState(false)
   const dragStart = useRef({ x: 0, y: 0 })
   const panStart = useRef({ x: 0, y: 0 })
@@ -143,15 +127,10 @@ export function PhotoLightbox({
   const metadataTouchStart = useRef<{ y: number; t: number; base: number } | null>(null)
   const swipeTouchStart = useRef<{ x: number; y: number; t: number; base: number } | null>(null)
   const swipeIntent = useRef<'horizontal' | 'vertical' | null>(null)
-  // The photo tracks the finger 1:1 during a horizontal swipe
   const swipeX = useMotionValue(0)
-  // The sheet's vertical offset: 0 when expanded, sheetTravel (the height of
-  // everything below the handle) when collapsed
   const sheetY = useMotionValue(0)
   const [sheetTravel, setSheetTravel] = useState(0)
   const sheetTravelRef = useRef(0)
-  // 0 expanded → 1 collapsed. Move the content over the fixed safe-area
-  // spacer on expansion; no inherited variables or per-frame height changes.
   const sheetCollapseProgress = useTransform(sheetY, (v) => {
     const travel = sheetTravelRef.current
     if (travel <= 0) return 1
@@ -160,18 +139,12 @@ export function PhotoLightbox({
   const sheetContentTransform = useTransform(sheetCollapseProgress, (progress) =>
     `translateY(calc(env(safe-area-inset-bottom) * ${progress - 1}))`,
   )
-  // Browsers still emit a click for touches under their own tap slop
-  // (~8-15px); a committed gesture must swallow that click or it toggles the
-  // sheet straight back. Stores the commit time so only the immediate
-  // synthetic click is suppressed, never a later keyboard or mouse activation
   const sheetGestureCommittedAtRef = useRef(0)
   const sheetContentRef = useRef<HTMLDivElement>(null)
   const sheetScrollerRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  // The unzoomed wrapper: its rect is the image's untransformed position, so
-  // zoom math can read it mid-animation without drift
   const wrapperRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
@@ -181,20 +154,13 @@ export function PhotoLightbox({
   })
   const hasMetadata = availableFields.length > 0
 
-  // Rapid prev/next presses skip the enter animation — only the first
-  // navigation in a burst animates, the rest swap instantly.
   const prevIndexRef = useRef(currentIndex)
   const lastNavTimeRef = useRef(0)
   const rapidNavRef = useRef(false)
   const keyboardNavRef = useRef(false)
   const enteredViaKeyboardRef = useRef(false)
-  // Button navigation slides the photo in from the travel direction;
-  // keyboard navigation swaps immediately.
-  // a committed swipe skips that (swipeX already carries the continuity)
   const gestureNavRef = useRef(false)
   const enteredViaGestureRef = useRef(false)
-  // Recorded where the navigation originates (arrows, keys) rather than
-  // inferred from the index delta, which is ambiguous with two photos
   const navIntentRef = useRef<0 | 1 | -1>(0)
   const navDirRef = useRef<0 | 1 | -1>(0)
   if (prevIndexRef.current !== currentIndex) {
@@ -210,26 +176,19 @@ export function PhotoLightbox({
     prevIndexRef.current = currentIndex
   }
 
-  // Reset zoom/pan on photo change
   useLayoutEffect(() => {
     setZoom(1)
     setPan({ x: 0, y: 0 })
     setIsMobileMetadataExpanded(false)
-    // The travel-change guard won't fire when the new photo measures the
-    // same, so the collapsed position is restored explicitly
     sheetY.jump(sheetTravelRef.current)
   }, [currentIndex, sheetY, setPan, setZoom])
 
-  // Imperative MotionValue springs live outside MotionConfig. A preference
-  // change must also settle animations already running when it arrives.
   useLayoutEffect(() => {
     if (!reducedMotion) return
     swipeX.jump(0)
     sheetY.jump(isMobileMetadataExpanded ? 0 : sheetTravel)
   }, [reducedMotion, swipeX, sheetY, isMobileMetadataExpanded, sheetTravel])
 
-  // Zooming hides the sheet; it comes back collapsed after unzoom rather
-  // than reappearing expanded
   useEffect(() => {
     if (zoom > 1) {
       setIsMobileMetadataExpanded(false)
@@ -237,7 +196,6 @@ export function PhotoLightbox({
     }
   }, [zoom, sheetY])
 
-  // Prefetch neighbors only (not the full album).
   useEffect(() => {
     if (photos.length <= 1) return
     const viewportWidth = window.innerWidth
@@ -252,8 +210,6 @@ export function PhotoLightbox({
     })
   }, [photos.length, prevPhoto, nextPhoto])
 
-  // How far the scaled image overflows the container on each axis; pan is
-  // clamped here so the photo can never be dragged out of reach
   const getPanBounds = useCallback((z: number) => {
     const img = imgRef.current
     const container = containerRef.current
@@ -275,8 +231,6 @@ export function PhotoLightbox({
     [getPanBounds],
   )
 
-  // Zoom toward a screen point: the pixel under the cursor stays put.
-  // Without a point (toolbar buttons, keyboard) it zooms about the center.
   const applyZoom = useCallback(
     (nextZoom: number, origin?: { x: number; y: number }) => {
       const target = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom))
@@ -288,9 +242,6 @@ export function PhotoLightbox({
       const pan = { x: panX.get(), y: panY.get() }
       let next = pan
       if (origin && wrapperRef.current) {
-        // The transform scales about the image center then offsets by pan. The
-        // wrapper isn't transformed by zoom/pan, so its center is the image's
-        // untransformed center even while a previous zoom is still animating
         const rect = wrapperRef.current.getBoundingClientRect()
         const baseX = rect.left + rect.width / 2
         const baseY = rect.top + rect.height / 2
@@ -322,7 +273,6 @@ export function PhotoLightbox({
     setPan({ x: 0, y: 0 })
   }, [setPan, setZoom])
 
-  // Keyboard
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -353,8 +303,6 @@ export function PhotoLightbox({
     }
   }, [handleKeyDown])
 
-  // Dialog focus behavior: focus moves in on open, stays trapped inside, and
-  // returns to the gallery tile on close
   useEffect(() => {
     returnFocusRef.current = document.activeElement as HTMLElement | null
     rootRef.current?.focus({ preventScroll: true })
@@ -371,8 +319,6 @@ export function PhotoLightbox({
       const first = focusables[0]
       const last = focusables[focusables.length - 1]
       const active = document.activeElement as HTMLElement | null
-      // Focus can land on body when the focused control unmounts (e.g. Reset
-      // zoom); pull it back into the dialog instead of leaking to the page
       if (!active || (active !== root && !root.contains(active))) {
         e.preventDefault()
         ;(e.shiftKey ? last : first).focus()
@@ -391,7 +337,6 @@ export function PhotoLightbox({
     }
   }, [])
 
-  // Mouse wheel zoom, toward the cursor
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       e.preventDefault()
@@ -402,8 +347,6 @@ export function PhotoLightbox({
     [zoomIn, zoomOut],
   )
 
-  // Pan via drag when zoomed; past the bounds the image follows at reduced
-  // rate (rubber-band) and settles back onto the edge on release
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (zoom <= 1) return
@@ -439,7 +382,6 @@ export function PhotoLightbox({
     setPan(clampPan({ x: panX.get(), y: panY.get() }, zoom))
   }, [isPanning, zoom, clampPan, panX, panY, setPan])
 
-  // Double-click to toggle zoom, into the point that was clicked
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       if (zoom > 1) resetZoom()
@@ -448,9 +390,6 @@ export function PhotoLightbox({
     [zoom, resetZoom, applyZoom],
   )
 
-
-  // Measured before paint so the sheet starts collapsed without a flash of
-  // the expanded state; ResizeObserver keeps it current across photo changes
   useLayoutEffect(() => {
     const el = sheetContentRef.current
     if (!el) return
@@ -464,9 +403,6 @@ export function PhotoLightbox({
     return () => observer.disconnect()
   }, [hasMetadata, zoom, currentIndex])
 
-  // Re-sync the collapsed resting offset only when the measurement itself
-  // changes (mount, resize, photo change) — not on expanded→collapsed, which
-  // must keep its settle spring alive
   const appliedTravelRef = useRef<number | null>(null)
   useLayoutEffect(() => {
     if (appliedTravelRef.current === sheetTravel) return
@@ -484,8 +420,6 @@ export function PhotoLightbox({
     [sheetTravel, reducedMotion, sheetY],
   )
 
-  // An abandoned gesture (scroll hand-off, system touchcancel) settles the
-  // sheet onto whichever rest point is nearer
   const settleSheet = useCallback(() => {
     setSheetExpanded(sheetY.get() < sheetTravel / 2)
   }, [setSheetExpanded, sheetY, sheetTravel])
@@ -496,7 +430,6 @@ export function PhotoLightbox({
       metadataTouchStart.current = null
       return
     }
-    // A drag takes over from any in-flight settle spring
     sheetY.stop()
     sheetGestureCommittedAtRef.current = 0
     metadataTouchStart.current = { y, t: performance.now(), base: sheetY.get() }
@@ -508,9 +441,6 @@ export function PhotoLightbox({
       const y = e.touches[0]?.clientY
       if (start === null || typeof y !== 'number') return
       const deltaY = y - start.y
-      // Drags that belong to the metadata list are ceded to native scrolling:
-      // any drag once the list has scrolled off the top, and upward drags
-      // while expanded (they scroll the list, not the sheet)
       const scroller = sheetScrollerRef.current
       if (scroller && scroller.contains(e.target as Node)) {
         const listOwnsGesture =
@@ -522,7 +452,6 @@ export function PhotoLightbox({
         }
       }
       const raw = start.base + deltaY
-      // Beyond either rest point the sheet moves at a fraction of the finger
       const overshoot =
         raw < 0 ? raw * OVERSCROLL_RESISTANCE
         : raw > sheetTravel ? sheetTravel + (raw - sheetTravel) * OVERSCROLL_RESISTANCE
@@ -548,18 +477,13 @@ export function PhotoLightbox({
       if (typeof endY !== 'number') return
 
       const deltaY = endY - start.y
-      // A plain tap is handled by the handle button's onClick; the sheet
-      // still returns to its rest point in case touchmove nudged it
       if (Math.abs(deltaY) < SHEET_TAP_SLOP) {
         const rest = isMobileMetadataExpanded ? 0 : sheetTravel
-        // Animated, not set: a tap that lands mid-settle must not teleport
         if (sheetY.get() !== rest) setSheetExpanded(isMobileMetadataExpanded)
         return
       }
 
       const velocity = deltaY / Math.max(performance.now() - start.t, 1)
-      // A flick commits toward its direction; slower releases settle to the
-      // nearest rest point
       const expand =
         Math.abs(velocity) > SHEET_FLICK_VELOCITY
           ? velocity < 0
@@ -582,12 +506,9 @@ export function PhotoLightbox({
       base: swipeX.get(),
     }
     swipeIntent.current = null
-    // A touch takes over swipeX immediately; a still-running handoff spring
-    // would otherwise keep writing frames over the finger tracking
     swipeX.stop()
   }, [swipeX])
 
-  // The photo follows the finger 1:1 once the gesture reads as horizontal
   const handleImageTouchMove = useCallback(
     (e: React.TouchEvent<HTMLDivElement>) => {
       if (isZoomed || photos.length <= 1 || reducedMotion) return
@@ -617,7 +538,6 @@ export function PhotoLightbox({
     const deltaY = touch.clientY - start.y
     const SWIPE_THRESHOLD = 45
     const velocity = Math.abs(deltaX) / Math.max(performance.now() - start.t, 1)
-    // A quick flick counts even when it travels less than the distance threshold
     const passes =
       Math.abs(deltaX) > SWIPE_THRESHOLD || (velocity > 0.11 && Math.abs(deltaX) > 12)
 
@@ -639,7 +559,6 @@ export function PhotoLightbox({
       if (deltaX > 0) onPrev()
       else onNext()
     } else {
-      // Didn't commit: spring the photo back under the finger's last position
       if (reducedMotion) swipeX.jump(0)
       else animate(swipeX, 0, { type: 'spring', duration: 0.3, bounce: 0 })
     }
@@ -648,8 +567,6 @@ export function PhotoLightbox({
     swipeIntent.current = null
   }, [isZoomed, photos.length, onPrev, onNext, swipeX, reducedMotion])
 
-  // System gestures can cancel the touch mid-swipe; spring the photo back so
-  // it isn't left stranded off-center
   const handleImageTouchCancel = useCallback(() => {
     if (reducedMotion) swipeX.jump(0)
     else animate(swipeX, 0, { type: 'spring', duration: 0.3, bounce: 0 })
@@ -672,7 +589,6 @@ export function PhotoLightbox({
       className="fixed inset-0 z-[100] bg-white/95 dark:bg-black/95 outline-none"
       onClick={onClose}
     >
-        {/* Close */}
         <button
           onClick={onClose}
           aria-label="Close"
@@ -685,7 +601,6 @@ export function PhotoLightbox({
           <X className="h-5 w-5" />
         </button>
 
-        {/* Zoom controls, bottom-center of image */}
         <div
           className={`hidden md:flex absolute z-20 items-center gap-1 rounded-full bg-white/80 border border-black/10 dark:bg-black/60 dark:border-white/10 p-1 backdrop-blur-sm left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top)+0.75rem)] md:top-auto md:bottom-6 ${hasMetadata ? 'md:left-[calc((100%-280px)/2)]' : ''}`}
           onClick={(e) => e.stopPropagation()}
@@ -720,7 +635,6 @@ export function PhotoLightbox({
           )}
         </div>
 
-        {/* Prev / Next */}
         {photos.length > 1 && !isZoomed && (
           <>
             <button
@@ -740,11 +654,8 @@ export function PhotoLightbox({
           </>
         )}
 
-        {/* Main layout: photo + optional side panel */}
         <motion.div
           key={photo.id}
-          // No fade when the tile morph is playing (initial open) or during a
-          // rapid prev/next burst
           initial={
             rapidNavRef.current || enteredViaKeyboardRef.current || photo.id === morphPhotoId
               ? false
@@ -755,10 +666,6 @@ export function PhotoLightbox({
                   : { opacity: 0, transform: reducedMotion ? 'none' : 'scale(0.99)' }
           }
           animate={{ opacity: 1, transform: 'none' }}
-          // When the tile morph will play the close, an exit fade here would
-          // hold the subtree faded-out for 200ms before the shrink-back could
-          // start; skipping it lets the grid tile take over immediately while
-          // the overlay fades on its own (same shape as the projects morph)
           exit={
             photo.id === morphPhotoId ? undefined : { opacity: 0, transition: { duration: 0.15, ease: EASE_OUT } }
           }
@@ -766,7 +673,6 @@ export function PhotoLightbox({
           className="h-full flex"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Photo area */}
           <div
             ref={containerRef}
             className={`flex-1 flex items-center justify-center p-4 md:p-8 min-w-0 overflow-hidden ${isZoomed ? 'touch-none' : 'touch-pan-y'} ${hasMetadata && !isZoomed ? (isMobileMetadataExpanded ? 'pb-64 md:pb-8' : 'pb-16 md:pb-8') : ''}`}
@@ -779,11 +685,6 @@ export function PhotoLightbox({
             onTouchEnd={handleImageTouchEnd}
             onTouchCancel={handleImageTouchCancel}
           >
-            {/* self-stretch gives the wrapper a definite height so the image's
-                max-h-full still resolves (the wrapper itself has no visible box,
-                so the morph still reads as landing on the photo) */}
-            {/* Swiping and the shared-element morph need separate transforms:
-                projection owns the inner transform until the morph detaches. */}
             <motion.div
               style={{ x: swipeX }}
               className="flex max-w-full min-h-0 self-stretch items-center justify-center"
@@ -812,8 +713,6 @@ export function PhotoLightbox({
                   onPointerCancel={handlePointerUp}
                   className="image-outline max-w-full max-h-full w-auto h-auto object-contain select-none"
                   style={{
-                    // A newly keyed photo must never inherit the previous
-                    // photo's pan/zoom for even one frame before the reset.
                     transform: isCurrentPhoto ? imageTransform : 'none',
                     transition:
                       isPanning || reducedMotion
@@ -827,7 +726,6 @@ export function PhotoLightbox({
             </motion.div>
           </div>
 
-          {/* Metadata panel, desktop */}
           {hasMetadata && (
             <div
               className="hidden md:flex w-[280px] shrink-0 border-l border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/60 backdrop-blur-sm flex-col justify-center px-6 py-8"
@@ -854,7 +752,6 @@ export function PhotoLightbox({
                 })}
               </div>
 
-              {/* Counter */}
               <div className="mt-8 pt-5 border-t border-black/[0.08] dark:border-white/[0.08]">
                 <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
                   {currentIndex + 1} / {photos.length}
@@ -864,9 +761,7 @@ export function PhotoLightbox({
           )}
         </motion.div>
 
-        {/* Mobile metadata sheet */}
         {hasMetadata && !isZoomed && (
-          // Entrance fades only: the vertical position belongs to sheetY
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -889,23 +784,16 @@ export function PhotoLightbox({
               }}
               aria-label={isMobileMetadataExpanded ? 'Hide photo details' : 'Show photo details'}
               aria-expanded={isMobileMetadataExpanded}
-              // touch-none keeps the browser from hijacking handle drags; the
-              // list below keeps native touch so it can scroll
               className="min-h-11 w-full touch-none px-5 pt-3 pb-[0.35rem]"
             >
               <span className="mx-auto mb-2 block h-1 w-12 rounded-full bg-black/25 dark:bg-white/25" />
             </button>
 
-            {/* Fixed safe-area space: content translates over it on expansion,
-                leaving the same space below the counter without changing layout. */}
             <div
               aria-hidden
               style={{ height: 'env(safe-area-inset-bottom)' }}
             />
 
-            {/* Everything below the handle is the sheet's travel: collapsing
-                translates the sheet down by this region's height, so open and
-                close run entirely on the compositor */}
             <motion.div ref={sheetContentRef} inert={!isMobileMetadataExpanded} style={{ transform: sheetContentTransform }}>
               <div ref={sheetScrollerRef} className="max-h-72 overflow-y-auto px-5 pb-2">
                 <div className="grid grid-cols-2 gap-x-5 gap-y-3 pb-2">

@@ -77,8 +77,6 @@ export const Posts: CollectionConfig = {
         },
       },
     },
-    // New posts by email (lib/newsletter). Only used when the deployment has
-    // the Resend settings; see AGENTS.md.
     {
       name: 'newsletterSend',
       type: 'checkbox',

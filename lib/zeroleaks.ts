@@ -1,11 +1,7 @@
-// ZeroLeaks plans from https://zeroleaks.ai/pricing (October 2026). The Ask
-// lock's profile and its pricing card both read these, so they can't
-// disagree. Update when the prices change.
 export const ZEROLEAKS_PRICING_URL = 'https://zeroleaks.ai/pricing'
 
 export interface ZeroLeaksPlan {
   name: string
-  // Dollars a month; null when the price is on request
   monthly: number | null
   detail: string
 }

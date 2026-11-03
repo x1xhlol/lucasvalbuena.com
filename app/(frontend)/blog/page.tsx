@@ -11,14 +11,11 @@ import { NEWSLETTER_ENABLED } from '@/lib/newsletter/config'
 export const metadata: Metadata = {
   title: 'Blog | Lucas Valbuena',
   description: 'Thoughts on AI, open source, security, and web development.',
-  // Without this the route inherits canonical: '/' from the root layout and
-  // declares itself a duplicate of the home page.
   alternates: {
     canonical: '/blog',
   },
 }
 
-// ISR: serve the list from cache; new posts show up within a minute
 export const revalidate = 60
 
 export default async function BlogPage() {

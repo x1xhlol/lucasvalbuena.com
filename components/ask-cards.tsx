@@ -31,8 +31,6 @@ function useCardData(): AskCardData | null {
   return promise ? use(promise) : null
 }
 
-// Every card shares one raised surface, like the composer below it, and rises
-// in once when the lock writes its tag
 function CardFrame({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <motion.section
@@ -47,18 +45,13 @@ function CardFrame({ label, className = '', children }: { label: string; classNa
   )
 }
 
-// A whole row is one target. Its focus outline is the site's usual one, moved
-// inside the row by .ask-card-row in globals.css since the card clips it.
 const ROW =
   'ask-card-row group flex min-h-12 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 ease-out pointer-fine:hover:bg-muted/60 active:bg-muted'
 
-// The first and last rows take the card's corners so their outline does too
 const ROW_ITEM = 'first:*:rounded-t-2xl last:*:rounded-b-2xl'
 
-// Every link on a card opens in a new tab, so the conversation stays put
 const NEW_TAB = { target: '_blank', rel: 'noopener noreferrer' } as const
 
-// Nudges toward where the row goes, like the links on a project's panel
 function RowArrow({ className = '' }: { className?: string }) {
   return (
     <ArrowUpRight
@@ -68,7 +61,6 @@ function RowArrow({ className = '' }: { className?: string }) {
   )
 }
 
-// Same look as the links in a project's details panel on the home page
 function CardLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <a
@@ -87,13 +79,10 @@ function CardLink({ href, children }: { href: string; children: React.ReactNode 
   )
 }
 
-// A screenshot with the site's 1px image edge, drawn on top so it follows
-// the rounded corners. It fades in over its placeholder instead of popping.
 function Shot({
   src,
   sizes,
   className,
-  // Screenshots read from the top left; photos crop around their middle
   position = 'object-left-top',
 }: {
   src: string
@@ -117,7 +106,6 @@ function Shot({
   )
 }
 
-// A dash means GitHub didn't answer, and a zero says nothing worth showing
 function RepoStats({ repo }: { repo: string }) {
   const stats = useCardData()?.stats[repo]
   if (!stats || !hasCount(stats.stars)) return null
@@ -154,7 +142,6 @@ function ProjectCard({ slug }: { slug?: string }) {
         )}
         <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2 sm:py-1.5 sm:pl-0 sm:pr-2.5">
           <div className="flex items-baseline justify-between gap-3">
-            {/* Opens the project's details on the home page */}
             <a
               href={`/?${PROJECT_PARAM}=${project.slug}`}
               {...NEW_TAB}
@@ -186,7 +173,6 @@ function ProjectsCard() {
         {PROJECTS.map((project) => (
           <li key={project.slug} className={ROW_ITEM}>
             <a href={project.links.demo ?? project.links.github} {...NEW_TAB} className={ROW}>
-              {/* Phones get the words the full width instead */}
               {project.image && (
                 <Shot src={project.image} sizes="64px" className="hidden aspect-[16/10] w-16 rounded-md sm:block" />
               )}
@@ -209,7 +195,6 @@ function ExperienceCard() {
       <ul className="divide-y divide-border">
         {EXPERIENCE.map((item) => (
           <li key={item.company} className={ROW_ITEM}>
-            {/* Logo, dates, and arrow all sit on the company's line */}
             <a href={item.href} {...NEW_TAB} className={ROW}>
               <CompanyLogo company={item.company} className="relative mt-0.5 block size-4 shrink-0 self-start" />
               <span className="min-w-0 flex-1">
@@ -263,8 +248,6 @@ const ICON_SWAP = {
   filter: { duration: 0.16, ease: EASE_OUT },
 } as const
 
-// The whole email row copies the address, like the email on the home page.
-// Only the icon changes, in place, so confirming the copy moves nothing.
 function EmailRow() {
   const [copied, setCopied] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -336,7 +319,6 @@ function ContactCard() {
   )
 }
 
-// Narrow cells would otherwise break "14-day" after the hyphen
 function KeepHyphenated({ text }: { text: string }) {
   return text.split(/(\S+-\S+)/).map((piece, index) =>
     index % 2 ? (
@@ -352,8 +334,6 @@ function KeepHyphenated({ text }: { text: string }) {
 function PricingCard() {
   return (
     <CardFrame label="ZeroLeaks pricing">
-      {/* Hairlines between plans come from the gap showing the border color
-          through, so they hold in both the 2×2 and the single-row layout */}
       <ul className="grid grid-cols-2 gap-px bg-border sm:grid-cols-4">
         {ZEROLEAKS_PLANS.map((plan) => (
           <li key={plan.name} className="flex flex-col bg-background px-4 py-3">
@@ -376,8 +356,6 @@ function PricingCard() {
   )
 }
 
-// The first photos in gallery order, square-cropped. The whole card is one
-// link to the gallery, named by its last row.
 function PhotosCard() {
   const photos = useCardData()?.photos
   const latest = photos?.latest ?? []
@@ -408,8 +386,6 @@ function PhotosCard() {
   )
 }
 
-// Posts and photos load on the server; the frame holds a place for them if
-// they're still on their way
 function PostsFallback() {
   return <div aria-hidden className="h-[145px] rounded-2xl bg-muted/50" />
 }

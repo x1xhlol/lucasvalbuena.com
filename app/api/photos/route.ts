@@ -10,7 +10,6 @@ import {
 } from '@/lib/photos'
 import { toPlaceName } from '@/lib/geocode'
 
-// The admin page's list. The gallery reads the manifest on the server.
 export async function GET(request: NextRequest) {
   const session = request.cookies.get(ADMIN_COOKIE)?.value
   if (!isValidSession(session)) {
@@ -43,7 +42,6 @@ export async function POST(request: NextRequest) {
     const manifest = await getManifest()
     const newPhotos: Photo[] = []
 
-    // One at a time: naming the places is rate limited
     for (const item of items) {
       const id = crypto.randomUUID().replace(/-/g, '').slice(0, 12)
       const { location, ...metadata } = item.metadata || {}

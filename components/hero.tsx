@@ -7,15 +7,10 @@ import { Section } from '@/components/section'
 import { Fact } from '@/components/fact'
 import { Age, ageInYears } from '@/components/age'
 
-// Stand-ins sized like the letter they replace, so a scrambled lowercase
-// letter never pokes above the x-height and the line keeps its shape
 const GLYPHS_UPPER = '#$%&0123456789ABCDEFXZ'
 const GLYPHS_LOWER = 'acenorsuvxz*+=<>'
 const SCRAMBLE_RADIUS = 48
 const SCRAMBLE_CYCLE_MS = 45
-// Glyphs under the pointer stay scrambled longest; the edge of the radius
-// settles first, so the name resolves back toward the cursor instead of
-// snapping all at once
 const SCRAMBLE_SETTLE_MIN_MS = 160
 const SCRAMBLE_SETTLE_MAX_MS = 420
 
@@ -26,19 +21,12 @@ function randomGlyph(original: string, current: string | null) {
   return next
 }
 
-// Characters glitch near the pointer while it MOVES and settle once it rests —
-// each movement energizes nearby glyphs for a short window, so a stationary
-// cursor can't flicker forever. Mouse: hover. Touch: tap bursts around the
-// finger, horizontal drags sweep along the name (touch-pan-y keeps vertical
-// scrolling native).
 function ScrambledName({ text }: { text: string }) {
   const glyphRefs = useRef<(HTMLSpanElement | null)[]>([])
   const activeUntilRef = useRef<number[]>([])
   const rafRef = useRef<number | null>(null)
   const lastCycleRef = useRef(0)
 
-  // Lock each glyph's box to its rendered width so swapped characters can't
-  // nudge the rest of the line — the pixel font isn't strictly monospace
   useEffect(() => {
     const lockWidths = () => {
       const els = glyphRefs.current
@@ -86,7 +74,6 @@ function ScrambledName({ text }: { text: string }) {
         delete el.dataset.scrambled
       }
     })
-    // The pass where every window has expired restores all glyphs, then stops
     rafRef.current = anyActive ? requestAnimationFrame(loop) : null
   }
 
@@ -153,8 +140,6 @@ const ZeroLeaksIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 )
 
 const OrchidMark = () => (
-  // Right margin stands in for a space: a literal space inside the underlined
-  // link would get underlined, so the line would start before the word
   <span className="relative ml-[0.15em] mr-[0.4em] inline-block size-[0.85em] align-[-0.1em]" aria-hidden>
     <Image src="/logos/orchid-ink.svg" alt="" fill loading="eager" className="object-contain dark:hidden" />
     <Image src="/logos/orchid-paper.svg" alt="" fill loading="eager" className="hidden object-contain dark:block" />
@@ -214,8 +199,6 @@ export function Hero({ stats }: { stats: Stats }) {
               href="https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools"
               target="_blank"
               rel="noopener noreferrer"
-              // inline-block keeps the slug whole on one line; max-w-full lets
-              // it break only on screens narrower than the slug itself
               className="inline-block max-w-full font-medium text-foreground underline-offset-[5px] decoration-muted-foreground/65 transition-colors hover:underline"
             >
               system-prompts-and-models-of-ai-tools

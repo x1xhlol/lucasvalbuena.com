@@ -20,8 +20,6 @@ export function formatGithubThousands(num: number): string {
 
 export type RepoStats = { stars: string; forks: string }
 
-// Server only. Cached in Next's data cache for ten minutes; a missing number
-// shows as a dash rather than failing the page.
 export async function getRepoStats(repo: string): Promise<RepoStats> {
   try {
     const token = process.env.GITHUB_TOKEN
@@ -50,11 +48,9 @@ export async function getRepoStats(repo: string): Promise<RepoStats> {
   }
 }
 
-// Stars and forks for every project with a repo, keyed by repo
 export async function getProjectStats(): Promise<Record<string, RepoStats>> {
   const repos = PROJECTS.flatMap((project) => (project.repo ? [project.repo] : []))
   return Object.fromEntries(await Promise.all(repos.map(async (repo) => [repo, await getRepoStats(repo)] as const)))
 }
 
-// False for a count GitHub didn't give us, so it can be left out
 export const hasCount = (count: string | undefined) => Boolean(count) && count !== '—' && count !== '0'

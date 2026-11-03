@@ -2,14 +2,6 @@
 
 import { useEffect } from 'react'
 
-// A phone keyboard shrinks the visible part of the page without resizing the
-// layout, so a full-height chat would keep its composer hidden behind it and
-// iOS would pan the whole page to compensate. This keeps the Ask shell the
-// size and position of what's actually visible, through --ask-height and
-// --ask-offset, and marks <html data-keyboard> while a keyboard is up.
-//
-// While the visitor is pinch-zoomed it steps aside: following the zoomed
-// area would squeeze the layout and make zooming useless.
 const KEYBOARD_MIN_PX = 120
 
 export function AskViewport() {

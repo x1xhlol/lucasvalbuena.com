@@ -8,7 +8,6 @@ import { openCommandPalette } from '@/components/command-palette'
 import { Drawer } from 'vaul'
 import { ASK_ENABLED } from '@/lib/ask/protocol'
 
-// Matches rounded-full on the nav links
 const INDICATOR_HIDDEN_CLIP = 'inset(0 100% 0 0 round 999px)'
 
 export function Navigation({
@@ -16,22 +15,12 @@ export function Navigation({
   hasBanner = false,
 }: {
   isHome?: boolean
-  // With the home page's Ask banner, the menu (mobile) and search (tablet)
-  // buttons rest in the banner's row instead of on the hero title's
   hasBanner?: boolean
 }) {
   const [isScrolled, setIsScrolled] = useState(false)
-  // On the mobile home page the search icon rests on the hero title's row and
-  // docks up into the bar as soon as the page scrolls, so it always relates to
-  // something: the title at rest, the bar in motion.
   const [isDocked, setIsDocked] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
-  // The home page carries no desktop chrome: its section links live in the page
-  // itself. Interior pages keep the bar, since it is their only way back.
-  // isHome comes from the home page rather than the pathname: Vercel's ISR
-  // revalidation renders / under a different pathname, which baked the pill
-  // bar into the cached HTML until hydration removed it.
   const desktopRowRef = useRef<HTMLDivElement>(null)
   const indicatorRef = useRef<HTMLDivElement>(null)
   const indicatorReadyRef = useRef(false)
@@ -62,15 +51,11 @@ export function Navigation({
     { href: '/photos', label: 'Photos' },
     ...(ASK_ENABLED ? [{ href: '/ask', label: 'Ask' }] : []),
   ]
-  // The pill bar stays minimal: just the pages. Section anchors remain
-  // available in the mobile drawer.
   const pillLinks = [{ href: `${prefix}#home`, label: 'Home' }, ...pageLinks]
 
   const activeHref =
     pillLinks.find((link) => pathname.startsWith(link.href))?.href ?? null
 
-  // Slide the clipped pill to the active link. The first placement (and any
-  // resize/font reflow) snaps without animating; only active-link changes slide.
   useLayoutEffect(() => {
     const row = desktopRowRef.current
     const indicator = indicatorRef.current
@@ -80,11 +65,6 @@ export function Navigation({
       const active = row.querySelector<HTMLElement>('a[data-active="true"]')
       let clip = INDICATOR_HIDDEN_CLIP
       if (active) {
-        // Accumulate layout offsets up to the row rather than reading client
-        // rects: rects are distorted while the links play their entry
-        // animation, which froze the pill slightly off-center on page load.
-        // The inset-0 indicator shares the row's padding box, so these
-        // offsets land in the indicator's own frame.
         let top = 0
         let left = 0
         for (
@@ -112,8 +92,6 @@ export function Navigation({
     place(indicatorReadyRef.current)
     indicatorReadyRef.current = true
 
-    // Re-snap when the row reflows (webfont swap, resize). Comparing widths
-    // ignores the observe-time callback so it can't stomp an in-flight slide.
     let lastWidth: number | null = null
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? lastWidth
@@ -128,10 +106,6 @@ export function Navigation({
   }, [activeHref])
 
   return (
-    // The bar spans the whole width but is see-through until the page
-    // scrolls, so it lets taps through to what's under it (the home page's
-    // Ask pill sits right there on phones); its own links and buttons still
-    // take them. Once it has a background on phones, it blocks as a bar should.
     <nav
       aria-label="Main navigation"
       className={`pointer-events-none fixed top-0 left-0 right-0 z-50 transition-colors duration-200 ease-out [&_a]:pointer-events-auto [&_button]:pointer-events-auto ${
@@ -146,9 +120,6 @@ export function Navigation({
     >
       <div className="mx-auto max-w-5xl px-6 md:px-12">
         <div className={`flex items-center justify-end h-14 md:h-16 ${isHome && hasBanner ? '' : 'md:justify-center'}`}>
-          {/* Home has no desktop bar at all, so this row would only ever be
-              display:none there. Not rendering it keeps the dead links out of
-              the markup. */}
           {!isHome && (
           <div
             ref={desktopRowRef}
@@ -172,9 +143,6 @@ export function Navigation({
                 </div>
               )
             })}
-            {/* Inverted copy of the link row, clipped to a pill over the active
-                link. Sliding the clip window moves the pill between links and
-                swaps the label color mid-glyph as it passes. */}
             <div
               ref={indicatorRef}
               aria-hidden

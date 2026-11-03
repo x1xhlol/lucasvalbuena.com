@@ -10,71 +10,41 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 export type DitherMethod = "bayer" | "halftone" | "floyd";
 
 export interface DitheredObjectOptions {
-  /** URL of the asset to display: GLB/glTF, SVG, PNG, JPEG, WebP, or GIF. Object URLs from a file input work too. The format is sniffed from the bytes, not the extension. */
   src?: string;
-  /** Dither pattern: an ordered Bayer grid, clustered halftone dots, or Floyd-Steinberg error diffusion. */
   method?: DitherMethod;
-  /** Size of the dither cells in CSS pixels. */
   gridSize?: number;
-  /** Extra pixelation applied on top of the grid size (1 to 10). */
   pixelSizeRatio?: number;
-  /** Collapse the scene to grayscale before dithering. */
   grayscale?: boolean;
-  /** Invert the final colors. */
   invert?: boolean;
-  /** Enable the dither pass. Turn off to see the raw render. */
   dither?: boolean;
-  /** Background color behind the object. Empty string keeps the canvas transparent. */
   background?: string;
-  /** Accent color of the ring light in the studio environment. */
   highlight?: string;
-  /** Brightness of the studio environment lighting. */
   environmentIntensity?: number;
-  /** Roughness override applied to every material (0 to 1). Negative keeps the asset's own values. */
   roughness?: number;
-  /** Size of the longest side of the object in scene units. The camera sits about 4 units away. */
   scale?: number;
-  /** Horizontal offset of the object in scene units. */
   xOffset?: number;
-  /** Vertical offset of the object in scene units. */
   yOffset?: number;
-  /** Strength of the floating bob animation (0 disables). */
   floatIntensity?: number;
-  /** Strength of the idle rocking rotation (0 disables). */
   rotationIntensity?: number;
-  /** Speed of the float and rocking animation. */
   floatSpeed?: number;
-  /** Let the user orbit the camera by dragging. */
   orbit?: boolean;
-  /** Let the user zoom with the scroll wheel or pinch. */
   zoom?: boolean;
-  /** Spin the camera around the object turntable-style. */
   autoRotate?: boolean;
-  /** Turntable speed when autoRotate is on. */
   autoRotateSpeed?: number;
-  /** Camera field of view in degrees. */
   fov?: number;
-  /** Camera distance from the center of the object. */
   cameraDistance?: number;
-  /** Base URL of the Draco decoder, fetched only when a model needs it. */
   dracoDecoderPath?: string;
-  /** Called after an asset finishes loading. */
   onLoad?: (() => void) | null;
-  /** Called when an asset fails to load. */
   onError?: ((error: unknown) => void) | null;
 }
 
 export interface DitheredObjectElements {
-  /** Canvas the scene renders to. */
   canvas: HTMLCanvasElement;
 }
 
 export interface DitheredObjectInstance {
-  /** Update options live. Changing src loads the new asset. */
   setOptions: (options: DitheredObjectOptions) => void;
-  /** Re-read canvas size. Call when the element is resized. */
   resize: () => void;
-  /** Stop the loop and release all GPU resources. */
   destroy: () => void;
 }
 
@@ -1368,6 +1338,5 @@ export function DitheredObject({
     </div>
   );
 }
-
 
 export default DitheredObject;

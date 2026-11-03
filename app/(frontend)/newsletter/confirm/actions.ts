@@ -5,9 +5,6 @@ import { newsletterEnv } from '@/lib/newsletter/config'
 import { verifyConfirmToken } from '@/lib/newsletter/token'
 import { subscribe } from '@/lib/newsletter/send'
 
-// Confirming takes a button press (a POST), not just opening the link. Mail
-// security scanners open every link in an email, and a link that subscribed
-// on its own would sign people up who never clicked.
 export async function confirmSubscription(formData: FormData) {
   const token = formData.get('t')
   const env = newsletterEnv()

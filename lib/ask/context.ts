@@ -6,8 +6,6 @@ import { notesForPrompt } from '@/lib/ask/notes'
 import { siteConfig } from '@/lib/site'
 import { CONTACT_EMAIL, CONTACT_LINKS } from '@/lib/contact'
 
-// The agent's knowledge and voice. The live site's prompt isn't published;
-// fill these in with your own.
 const PROFILE = `Write who you are, what you do, and how to reach you. Contact: email ${CONTACT_EMAIL}. ${CONTACT_LINKS.map((link) => `${link.label}: ${new URL(link.href, siteConfig.url).href}.`).join(' ')}`
 
 const ABOUT = ``
@@ -43,8 +41,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ])
 }
 
-// Memoized per server instance so a burst of questions doesn't query the
-// CMS each time, and so the prompt stays byte-identical for prompt caching
 export async function getPosts(): Promise<PostSummary[]> {
   if (postsCache && Date.now() < postsCache.expires) return postsCache.posts
   try {
@@ -70,8 +66,6 @@ export async function getPosts(): Promise<PostSummary[]> {
     postsCache = { expires: Date.now() + POSTS_TTL_MS, posts }
     return posts
   } catch {
-    // Answer from the rest of the profile while the CMS is unreachable, and
-    // retry it soon rather than on every question
     const stale = postsCache?.posts ?? []
     postsCache = { expires: Date.now() + POSTS_RETRY_MS, posts: stale }
     return stale
@@ -80,9 +74,6 @@ export async function getPosts(): Promise<PostSummary[]> {
 
 let photosCache: { expires: number; summary: string } | null = null
 
-// A line about the gallery for the profile: how many photos, when, on what,
-// and where (stored as "City, Country"; see lib/geocode.ts). Memoized like
-// the posts.
 async function getPhotoSummary(): Promise<string> {
   if (photosCache && Date.now() < photosCache.expires) return photosCache.summary
   let summary = ''
@@ -129,8 +120,6 @@ function describeProjects(): string {
 }
 
 function describePosts(posts: PostSummary[]): string {
-  // An empty list usually means the CMS was unreachable, not that there are
-  // no posts
   if (posts.length === 0) return `All posts are at ${siteConfig.url}/blog.`
   return posts
     .map((post) => {
@@ -141,8 +130,6 @@ function describePosts(posts: PostSummary[]): string {
     .join('\n')
 }
 
-// Stable across requests until a post changes, so it can be prompt-cached.
-// Anything that varies per request (like today's date) belongs after it.
 export async function buildAskSystemPrompt(): Promise<string> {
   const [posts, photos] = await Promise.all([getPosts(), getPhotoSummary()])
   const notes = notesForPrompt()

@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 
-// Analog clock on the lock creature's 16x16 grid, drawn at the same 44px.
-// Midpoint-circle rim, two Bresenham hands from the centre pixel, Spain time.
 const SIZE = 16
 const CENTER = 7
 
@@ -57,7 +55,6 @@ function hand(turns: number, length: number) {
   const a = turns * Math.PI * 2
   return line(CENTER, CENTER, Math.round(CENTER + Math.sin(a) * length), Math.round(CENTER - Math.cos(a) * length))
 }
-
 
 export function madridTime(date: Date) {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date)

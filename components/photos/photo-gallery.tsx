@@ -35,8 +35,6 @@ function buildNextImageUrl(url: string, width: number, quality: number): string 
 
 export function PhotoGallery({ photos }: PhotoGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
-  // The lightbox morphs from/to the tile it opened on; once the visitor
-  // navigates to another photo the shared element is gone and it fades instead
   const [morphPhotoId, setMorphPhotoId] = useState<string | null>(null)
   const galleryRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef(new Map<string, HTMLButtonElement>())
@@ -180,8 +178,6 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               )}
             >
-              {/* Keep clipping on the shared element so the close morph can
-                  extend beyond the grid button without being cropped. */}
               <motion.span
                 layoutId={`photo-${photo.id}`}
                 transition={SPRING_MORPH}
@@ -206,8 +202,6 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
         })}
       </div>
 
-      {/* AnimatePresence must own the conditional render — inside the lightbox
-          it would unmount with it and the exit animation would never run */}
       <AnimatePresence>
         {selectedIndex !== null && (
           <PhotoLightbox

@@ -1,8 +1,5 @@
 import type { CollectionConfig } from 'payload'
 
-// What visitors ask the lock on /ask, so gaps in its knowledge show up.
-// Written by app/api/ask/route.ts through the local API. No IP address or any
-// other identifier is stored, and only signed-in users can read entries.
 export const AskQuestions: CollectionConfig = {
   slug: 'ask-questions',
   labels: { singular: 'Ask question', plural: 'Ask questions' },

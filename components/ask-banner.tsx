@@ -3,9 +3,6 @@ import { ChevronRight } from 'lucide-react'
 
 export function AskBanner() {
   return (
-    // Same height as the nav row, whose menu (mobile) and search (tablet)
-    // buttons rest in this bar on the home page; the right padding keeps the
-    // Ask pill clear of the mobile menu button
     <div className="h-14 bg-muted md:h-16">
       <div className="mx-auto flex h-full w-full max-w-[38rem] items-center justify-between gap-4 px-6 max-md:pr-[4.25rem] md:relative md:-left-2.5">
         <p className="text-sm font-medium text-foreground">Questions about my work?</p>

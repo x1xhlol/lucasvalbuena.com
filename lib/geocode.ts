@@ -1,19 +1,13 @@
 import { siteConfig } from '@/lib/site'
 
-// A photo's location is published, so it's stored as "City, Country", never
-// as the coordinates its camera recorded
 const COORDINATES = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/
 
-// OpenStreetMap names parts of London as cities of their own
 const LONDON = /London|^City of Westminster$/
 
-// Nominatim's usage policy: at most one request a second, from a client
-// that says who it is
 const MIN_GAP_MS = 1100
 let nextSlot = 0
 
 async function placeName(lat: string, lon: string): Promise<string | undefined> {
-  // Claim a slot before waiting, so calls made together still go out spaced
   const slot = Math.max(Date.now(), nextSlot)
   nextSlot = slot + MIN_GAP_MS
   if (slot > Date.now()) await new Promise((resolve) => setTimeout(resolve, slot - Date.now()))
@@ -40,9 +34,6 @@ async function placeName(lat: string, lon: string): Promise<string | undefined> 
   return [place, address?.country].filter(Boolean).join(', ') || undefined
 }
 
-// The location to store for a photo: a typed place name as it is, and
-// coordinates as the place they fall in. Coordinates that can't be named
-// come back undefined, so they're dropped instead of published.
 export async function toPlaceName(location: string): Promise<string | undefined> {
   const trimmed = location.trim()
   const coordinates = trimmed.match(COORDINATES)

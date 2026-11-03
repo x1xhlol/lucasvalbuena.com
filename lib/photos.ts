@@ -10,7 +10,6 @@ export interface PhotoMetadata {
   shutterSpeed?: string
   iso?: number
   dateTaken?: string
-  // "City, Country", never coordinates (lib/geocode.ts)
   location?: string
 }
 
@@ -55,8 +54,6 @@ export async function saveManifest(manifest: PhotoManifest): Promise<void> {
     allowOverwrite: true,
     contentType: 'application/json',
   })
-  // Purge the cached gallery (route + manifest data cache) so admin writes
-  // show up immediately instead of after the ISR window
   revalidatePath('/photos')
 }
 

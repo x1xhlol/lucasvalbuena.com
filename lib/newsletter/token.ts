@@ -1,10 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { CONFIRM_TTL_MS } from '@/lib/newsletter/config'
 
-// A confirmation link carries the address and an expiry, signed with
-// NEWSLETTER_SECRET. Nothing about an unconfirmed signup is stored anywhere:
-// the address only reaches Resend once someone presses Confirm.
-
 const PURPOSE = 'newsletter-confirm:v1'
 
 type Payload = { e: string; x: number }

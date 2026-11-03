@@ -22,9 +22,6 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
-// Keep this in step with what the site actually does: lib/newsletter for
-// email, app/api/ask/route.ts for Ask, and the Analytics component in the
-// root layout
 export default function PrivacyPage() {
   return (
     <div className="relative min-h-screen">

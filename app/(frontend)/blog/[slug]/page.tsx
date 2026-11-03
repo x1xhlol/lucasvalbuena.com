@@ -56,7 +56,6 @@ export default async function BlogPostPage({ params }: Props) {
   const post = await getPost(slug)
   if (!post) notFound()
 
-  // Neighbors in reverse-chronological order: index-1 is newer, index+1 older
   const { docs: allPosts } = await payload.find({
     collection: 'posts',
     where: { status: { equals: 'published' } },

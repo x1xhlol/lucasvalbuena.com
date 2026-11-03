@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { conditionForCode } from '@/components/pixel-sky'
 
-// Current conditions over León from Open-Meteo (free, no key). Cached for
-// 15 minutes, which is also how often the source updates.
 const SOURCE =
   'https://api.open-meteo.com/v1/forecast?latitude=42.5987&longitude=-5.5671&current=weather_code,is_day&timezone=Europe%2FMadrid'
 

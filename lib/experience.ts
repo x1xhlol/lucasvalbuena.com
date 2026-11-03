@@ -1,5 +1,3 @@
-// Shared by the home page's Experience section and the Ask lock's experience
-// card, so the two never list different roles or dates
 export interface ExperienceItem {
   company: 'Orchid' | 'ZeroLeaks'
   role: string

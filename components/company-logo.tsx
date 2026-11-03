@@ -1,8 +1,6 @@
 import Image from 'next/image'
 import type { ExperienceItem } from '@/lib/experience'
 
-// ZeroLeaks brand mark (rounded square with a circular cutout), inlined with
-// currentColor so a single asset adapts to both themes
 const ZeroLeaksIcon = () => (
   <svg
     viewBox="0 0 16 16"
@@ -18,8 +16,6 @@ const ZeroLeaksIcon = () => (
   </svg>
 )
 
-// A 16px mark. By default it sits inline on the text baseline, as in the
-// home page's Experience list; the Ask card places it in its own column.
 export function CompanyLogo({
   company,
   className = 'relative mr-2 inline-block size-4 align-[-0.2em]',

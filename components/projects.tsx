@@ -20,11 +20,8 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { Section } from '@/components/section'
 import { useEffect, useRef, useState } from 'react'
 
-// Shared-element morph between a project row and its details
 const MORPH = SPRING_MORPH
 
-// Details fade in after the morph is underway, and drop out quickly before
-// it shrinks back into the row
 const contentFade = {
   initial: { opacity: 0 },
   animate: { opacity: 1, transition: { duration: 0.25, delay: 0.12, ease: EASE_OUT } },
@@ -39,8 +36,6 @@ type Enlarge = (image: { src: string; alt: string }) => void
 
 const NEW_TAB = { target: '_blank', rel: 'noopener noreferrer' } as const
 
-// A screenshot with the site's 1px image edge, drawn on top so it follows
-// the rounded corners, fading in over its placeholder instead of popping
 function Shot({
   src,
   sizes,
@@ -69,7 +64,6 @@ function Shot({
   )
 }
 
-// The same text link the Ask cards use, so a project reads the same in both
 function TextLink({
   href,
   children,
@@ -134,8 +128,6 @@ function Links({ project }: { project: Project }) {
   )
 }
 
-// The panel's screenshot goes through next/image, so warming it means asking
-// for the same srcset the panel will request
 const PANEL_SHOT_SIZES = '(max-width: 640px) 100vw, 544px'
 const warmed = new Set<string>()
 function warmPanelShot(project: Project) {
@@ -148,7 +140,6 @@ function warmPanelShot(project: Project) {
   img.src = props.src
 }
 
-// A handful of stars undersells a project, so small counts stay off
 function notable(stats: RepoStats | null): stats is RepoStats {
   if (!stats || !hasCount(stats.stars)) return false
   return stats.stars.endsWith('k') || Number(stats.stars) >= 50
@@ -203,10 +194,6 @@ function ShotButton({
   )
 }
 
-// The details use the Ask card's language: the screenshot inset with
-// concentric corners, quiet type, and text links. Esc or a click outside
-// closes it; the drawer on phones swipes away.
-
 function InsetBody({
   project,
   title,
@@ -250,8 +237,6 @@ function InsetBody({
   )
 }
 
-// Stars and forks come from the server (getProjectStats), cached there for
-// ten minutes, so visitors' browsers never call GitHub themselves
 export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
   const [enlargedImage, setEnlargedImage] = useState<{
     src: string
@@ -264,9 +249,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
     setEnlargedImageOpen(true)
   }
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
-  // The row the panel morphed out of. Opening from a link or the palette, or
-  // stepping to another project with the arrow keys, has no row to return
-  // to, so the panel fades and scales instead (as the photo viewer does)
   const [originIndex, setOriginIndex] = useState<number | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 640px)')
@@ -279,8 +261,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
   const desktopPanelOpen = detailsOpen && isDesktop
   const close = () => setDetailsOpen(false)
 
-  // The morph panel replaces Radix Dialog on desktop, so dialog behavior
-  // (Esc, focus trap, focus return, scroll lock) is handled here
   useEffect(() => {
     if (!desktopPanelOpen) return
     panelRef.current?.focus({ preventScroll: true })
@@ -288,7 +268,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || enlargedOpenRef.current) return
       if (e.key === 'Escape') {
-        // The image preview dialog stacks on top and handles its own Escape
         setDetailsOpen(false)
         return
       }
@@ -325,8 +304,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
     }
   }, [desktopPanelOpen])
 
-  // Warm the raw full-res URL for the enlarge dialog only once its project's
-  // details are open; the inline screenshot loads resized through next/image
   useEffect(() => {
     if (!detailsOpen || activeIndex === null) return
     const image = projects[activeIndex]?.image
@@ -334,7 +311,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
       const img = new window.Image()
       img.src = image
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailsOpen, activeIndex])
 
   const projects: Project[] = PROJECTS.map((project) => ({
@@ -350,7 +326,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
     setActiveIndex(index)
     setOriginIndex(from === 'row' ? index : null)
     setDetailsOpen(true)
-    // Focus goes back to whichever project is showing when the panel closes
     returnFocusRef.current = rowRefs.current[index] ?? returnFocusRef.current
     track('Project opened', { project: projects[index].slug, from })
   }
@@ -361,10 +336,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
     show((activeIndex + delta + projects.length) % projects.length, 'arrow')
   }
 
-  // Keep ?project= in the address bar while a project is open, so the page
-  // can be shared or reloaded straight into it
-  // Only removes a value it wrote itself, so an arriving ?project= survives
-  // until the effect below has read it
   const wroteParamRef = useRef(false)
   useEffect(() => {
     const slug = detailsOpen && activeProject ? activeProject.slug : null
@@ -377,7 +348,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
     window.history.replaceState(window.history.state, '', url)
   }, [detailsOpen, activeProject])
 
-  // Open from ?project= on arrival, and from the command palette while here
   useEffect(() => {
     const openSlug = (slug: string | null) => {
       const index = projects.findIndex((project) => project.slug === slug)
@@ -387,7 +357,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
     const onOpen = (event: Event) => openSlug((event as CustomEvent<string>).detail)
     window.addEventListener(OPEN_PROJECT_EVENT, onOpen)
     return () => window.removeEventListener(OPEN_PROJECT_EVENT, onOpen)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -407,8 +376,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
               onClick={() => show(index, 'row')}
               className="group relative -mx-2.5 w-[calc(100%+1.25rem)] cursor-pointer rounded-xl p-2.5 text-left outline-none transition-transform duration-150 ease-out focus-visible:ring-2 focus-visible:ring-foreground/20 motion-safe:active:scale-[0.99]"
             >
-              {/* Only this surface morphs into the panel. Text and the focus
-                  ring stay outside the scaled layer so they never stretch. */}
               <motion.span
                 layoutId={`project-card-${index}`}
                 transition={MORPH}
@@ -474,10 +441,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
                     className="absolute inset-0 bg-panel shadow-panel"
                   />
                   <div className="relative max-h-[88dvh] overflow-y-auto overscroll-contain rounded-[28px] custom-scrollbar">
-                    {/* Stepping with the arrow keys remounts the contents, which
-                        fade in quickly while the panel itself stays put. A
-                        nested AnimatePresence here would stop the open and
-                        close fades from reaching the contents. */}
                     <motion.div
                         key={activeIndex}
                         initial={originIndex === null ? { opacity: 0 } : false}
@@ -534,7 +497,6 @@ export function Projects({ stats }: { stats: Record<string, RepoStats> }) {
 
       <Dialog
         open={enlargedImageOpen}
-        // Keep the screenshot mounted through the dialog's exit animation.
         onOpenChange={setEnlargedImageOpen}
       >
         <DialogContent

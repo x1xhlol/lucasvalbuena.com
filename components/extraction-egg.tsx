@@ -13,8 +13,6 @@ const SHOWN_HEADERS = ['content-type', 'x-prompt-injection']
 type Segment = { text: string; muted?: boolean }
 type Part = { text: string; href?: string; muted?: boolean; start: number }
 
-// Split a segment on URLs so the anchor can carry the whole href even while
-// only a prefix of it has been revealed.
 function splitLinks(text: string): { text: string; href?: string }[] {
   const parts: { text: string; href?: string }[] = []
   const pattern = /https?:\/\/[^\s)]+/g
@@ -30,9 +28,6 @@ function splitLinks(text: string): { text: string; href?: string }[] {
   return parts
 }
 
-// The console egg tells people to run `curl -i /api/system-prompt`, which most
-// visitors never will. Typing "curl" performs that exact request in the page:
-// real fetch, real status line, real headers, real body.
 export function ExtractionEgg() {
   const [open, setOpen] = useState(false)
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
@@ -78,7 +73,6 @@ export function ExtractionEgg() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  // Escape closes; any other key skips the reveal to the end
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
@@ -86,7 +80,6 @@ export function ExtractionEgg() {
         setOpen(false)
         return
       }
-      // Let Enter activate a focused link instead of skipping the reveal
       const target = event.target as HTMLElement | null
       if (target?.closest('a')) return
       if (event.key.length === 1 || event.key === 'Enter') finish()

@@ -8,25 +8,20 @@ import { EASE_OUT } from '@/lib/motion'
 
 const MOOD_EVENT = 'ask-lock:mood'
 
-// thinking and talking hold until the next mood; the rest play once
 export type AskLockMood = 'thinking' | 'talking' | 'done' | 'wink' | 'open' | 'blink' | 'idle'
 
-// The chat reports what just happened; the lock in the header reacts
 export function setAskLockMood(mood: AskLockMood) {
   window.dispatchEvent(new CustomEvent<AskLockMood>(MOOD_EVENT, { detail: mood }))
 }
 
-// Frame, then how long to hold it
 const ONE_SHOTS: Record<'done' | 'wink' | 'open' | 'blink' | 'idle', Array<[LockFrame, number]>> = {
   done: [['idle', 120], ['blink', 160]],
   wink: [['winkLeft', 1000]],
-  // Pops open, snaps shut, winks: the same gag as the footer lock
   open: [['open', 900], ['idle', 180], ['winkLeft', 320]],
   blink: [['blink', 150]],
   idle: [],
 }
 
-// Glances side to side while waiting for an answer
 const THINKING: Array<[LockFrame, number]> = [
   ['left', 360],
   ['idle', 140],
@@ -34,16 +29,10 @@ const THINKING: Array<[LockFrame, number]> = [
   ['idle', 140],
 ]
 
-// How the whole lock moves for each mood; the eye frames above play on top.
-// The footer lock wiggles and hops the same way when it's clicked.
 const MOVES: Record<AskLockMood, [DOMKeyframesDefinition, AnimationOptions]> = {
-  // Tilts its head side to side while it thinks
   thinking: [{ rotate: [0, -10, 0, 10, 0], y: 0 }, { duration: 1, repeat: Infinity, ease: 'easeInOut' }],
-  // Bobs while the answer streams in
   talking: [{ y: [0, -2.5, 0], rotate: 0 }, { duration: 0.36, repeat: Infinity, ease: 'easeInOut' }],
-  // A small hop when it's done
   done: [{ y: [0, -7, 0], rotate: 0 }, { duration: 0.4, ease: EASE_OUT }],
-  // A "nope" wiggle at extraction attempts
   wink: [{ rotate: [0, -14, 12, -8, 5, 0], y: 0 }, { duration: 0.55, ease: EASE_OUT }],
   open: [{ y: [0, -6, 0], rotate: 0 }, { duration: 0.38, ease: EASE_OUT }],
   blink: [{ y: 0, rotate: 0 }, { duration: 0.2, ease: EASE_OUT }],
@@ -68,20 +57,17 @@ export function AskLock() {
     timersRef.current.forEach(clearTimeout)
     timersRef.current = []
     playingRef.current = true
-    // Movement is skipped entirely under reduced motion; the eyes still change
     if (!reducedMotion && scope.current) {
       moveRef.current?.stop()
       const [keyframes, options] = MOVES[mood]
       moveRef.current = animate(scope.current, keyframes, options)
     }
     if (mood === 'talking') {
-      // Wide-eyed for as long as the answer is streaming
       setFrame('happy')
       return
     }
     if (mood === 'thinking') {
       if (reducedMotion) {
-        // One glance held still instead of looking back and forth
         setFrame('left')
         return
       }
@@ -118,7 +104,6 @@ export function AskLock() {
     }
   }, [play])
 
-  // An occasional blink while nothing else is happening
   useEffect(() => {
     if (reducedMotion) return
     const timer = setInterval(() => {

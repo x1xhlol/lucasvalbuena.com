@@ -18,7 +18,6 @@ import { EASE_IN_OUT, EASE_OUT } from '@/lib/motion'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 const SIZE = 80
-// Trails below-right of the cursor so it never sits under what you point at
 const CURSOR_OFFSET_X = 34
 const CURSOR_OFFSET_Y = 42
 const CATCH_DISTANCE = 36
@@ -28,10 +27,6 @@ const WANDER_LEAVE_MS = 45000
 
 type SummonDetail = { x: number; y: number; mode?: 'cursor' | 'wander' }
 
-// Click the little lock five times and it escapes. With a pointer it chases
-// the cursor — pointer-events-none throughout, dismissed by catching it with
-// the cursor or Esc. On touch it wanders the screen on its own (napping now
-// and then), dismissed by tapping it; it wanders off by itself after 45s.
 export function LockFamiliar() {
   const [active, setActive] = useState(false)
   const [caught, setCaught] = useState(false)
@@ -79,7 +74,7 @@ export function LockFamiliar() {
       spawnedAt.current = performance.now()
       lastMove.current = performance.now()
       lastX.current = detail.x
-      holdTicks.current = 6 // wide-eyed for a beat after breaking free
+      holdTicks.current = 6
       setFrame('happy')
       setAsleep(false)
       caughtRef.current = false
@@ -123,8 +118,6 @@ export function LockFamiliar() {
       if (e.key === 'Escape') dismiss()
     }
 
-    // Wander mode: pick a random spot, amble over, sometimes stop for a nap
-    // (the long pause trips the sleep branch in the tick below)
     let wanderTimer: ReturnType<typeof setTimeout> | null = null
     let leaveTimer: ReturnType<typeof setTimeout> | null = null
     const roam = () => {
@@ -139,11 +132,6 @@ export function LockFamiliar() {
       wanderTimer = setTimeout(roam, nap ? 7500 : 1600 + Math.random() * 1800)
     }
 
-    // In wander mode taps steer it: it runs to wherever you touch and waits
-    // there (napping if you leave it alone), then resumes roaming. It lands
-    // just below the tap point so calling it twice doesn't accidentally
-    // catch it — catching is still a direct tap on it, which fires first
-    // and sets caughtRef before this listener runs.
     const onTap = (e: PointerEvent) => {
       if (caughtRef.current) return
       const tx = Math.min(Math.max(e.clientX, 50), window.innerWidth - 50)
@@ -154,7 +142,6 @@ export function LockFamiliar() {
       targetY.set(ty)
       if (wanderTimer) clearTimeout(wanderTimer)
       wanderTimer = setTimeout(roam, 8000)
-      // Playing with it keeps it around
       if (leaveTimer) clearTimeout(leaveTimer)
       leaveTimer = setTimeout(() => dismiss('it wandered off.'), WANDER_LEAVE_MS)
     }
@@ -168,8 +155,6 @@ export function LockFamiliar() {
     }
     window.addEventListener('keydown', onKey)
 
-    // Frame life: travels with its eyes, blinks or winks at rest, and falls
-    // asleep when nothing has moved for a while
     const lookWindow = wander ? 900 : 240
     const tick = setInterval(() => {
       if (caughtRef.current) return
@@ -229,8 +214,6 @@ export function LockFamiliar() {
               : 'pointer-events-none'
           }`}
           style={{ x, y, marginLeft: -SIZE / 2, marginTop: -SIZE / 2 }}
-          // Starts at roughly the footer lock's size (18px / 80px) so it reads
-          // as the little lock growing, not appearing from nothing
           initial={{ scale: 0.25, opacity: 0 }}
           animate={
             caught

@@ -1,8 +1,5 @@
 import { cn } from '@/lib/utils'
 
-// Every band on the home page shares one narrow reading column. Headings sit
-// inline above their content in the same column, so the whole page reads as a
-// single left-aligned stream. Hero passes no label and simply starts the flow.
 export function Section({
   id,
   label,

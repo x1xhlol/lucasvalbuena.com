@@ -3,8 +3,6 @@ import { siteConfig } from '@/lib/site'
 import { getPayloadClient } from '@/lib/payload'
 import { ASK_ENABLED } from '@/lib/ask/protocol'
 
-// Posts are published from the CMS, so a statically generated sitemap would
-// freeze the list at build time.
 export const dynamic = 'force-dynamic'
 
 type PostRow = {
@@ -32,7 +30,6 @@ async function getPostEntries(): Promise<MetadataRoute.Sitemap> {
         priority: 0.6,
       }))
   } catch {
-    // A database outage should still leave a valid sitemap for the static routes
     return []
   }
 }

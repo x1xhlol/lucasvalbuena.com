@@ -6,8 +6,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "posts" ADD COLUMN "newsletter_send_test" boolean DEFAULT false;
   ALTER TABLE "posts" ADD COLUMN "newsletter_sent_at" timestamp(3) with time zone;
   ALTER TABLE "posts" ADD COLUMN "newsletter_broadcast_id" varchar;`)
-  // Posts already live before the newsletter existed count as sent, so
-  // editing or re-publishing one later never emails it out
   await db.execute(sql`
    UPDATE "posts" SET "newsletter_sent_at" = now() WHERE "status" = 'published';`)
 }

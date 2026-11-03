@@ -1,250 +1,9 @@
 @import 'tailwindcss';
-/* Provides animate-in/animate-out, fade-in-0, zoom-in-96 etc. used by dialogs and tooltips */
 @import 'tw-animate-css';
-/* Streamdown renders Ask answers; Tailwind has to see the classes it uses */
-@source "../node_modules/streamdown/dist/*.js";
-
-@custom-variant dark (&:is(.dark *));
-/* Frosted surfaces go solid for users who ask for less transparency */
-@custom-variant reduce-transparency (@media (prefers-reduced-transparency: reduce));
-
-:root {
-  --background: oklch(0.9911 0 0);
-  --foreground: oklch(0.24 0 0);
-  --muted: oklch(0.955 0 0);
-  --muted-foreground: oklch(0.52 0 0);
-  --border: oklch(0.917 0 0);
-  --input: oklch(0.60 0 0);
-  --accent: oklch(0.24 0 0);
-  --accent-foreground: oklch(0.99 0 0);
-  --destructive: oklch(0.58 0.22 27);
-  --destructive-foreground: oklch(1 0 0);
-  --image-outline: oklch(0 0 0 / 0.1);
-  --raised-shadow: 0 0 0 1px oklch(0 0 0 / 0.07), 0 1px 2px oklch(0 0 0 / 0.05);
-  /* Everything that floats (dialogs, the palette, popovers, drawers, project
-     details): a surface a step above the page, a soft layered shadow instead
-     of one heavy drop, and a light veil to set it on */
-  --panel: oklch(1 0 0);
-  --panel-shadow: 0 0 0 1px oklch(0 0 0 / 0.05), 0 1px 2px oklch(0 0 0 / 0.03), 0 6px 16px -4px oklch(0 0 0 / 0.06), 0 28px 64px -12px oklch(0 0 0 / 0.16);
-  --scrim: oklch(0.2 0 0 / 0.1);
-  --radius: 0.5rem;
-}
-
-.dark {
-  --background: oklch(0.13 0 0);
-  --foreground: oklch(0.92 0 0);
-  --muted: oklch(0.21 0 0);
-  --muted-foreground: oklch(0.78 0 0);
-  --border: oklch(0.30 0 0);
-  --input: oklch(0.55 0 0);
-  --accent: oklch(0.92 0 0);
-  --accent-foreground: oklch(0.22 0 0);
-  --destructive: oklch(0.66 0.2 27);
-  --destructive-foreground: oklch(0.13 0 0);
-  --image-outline: oklch(1 0 0 / 0.1);
-  --raised-shadow: 0 0 0 1px oklch(1 0 0 / 0.12);
-  --panel: oklch(0.165 0 0);
-  --panel-shadow: 0 0 0 1px oklch(1 0 0 / 0.1);
-  --scrim: oklch(0 0 0 / 0.45);
-}
-
-/* System motion tokens. Overriding --ease-out / --ease-in-out retunes Tailwind's
-   ease-out / ease-in-out utilities site-wide and emits the vars for plain CSS.
-   ease-out for enter/exit, ease-in-out for on-screen movement (nav pill). */
-@theme static {
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-}
-
-@theme inline {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --font-geist-pixel: var(--font-geist-pixel-square), ui-monospace, monospace;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  /* shadcn aliases mapped onto the monochrome ramp so ui/* components resolve */
-  --color-popover: var(--background);
-  --color-popover-foreground: var(--foreground);
-  --color-primary: var(--foreground);
-  --color-primary-foreground: var(--background);
-  --color-secondary: var(--muted);
-  --color-secondary-foreground: var(--foreground);
-  --color-input: var(--input);
-  --color-ring: var(--muted-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --shadow-raised: var(--raised-shadow);
-  --shadow-panel: var(--panel-shadow);
-  --color-panel: var(--panel);
-  --color-scrim: var(--scrim);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 4px);
-}
-
-@layer base {
-  * {
-    @apply border-border;
+@source "../node_modules/streamdown/dist
+    scrollbar-width: none;
   }
 
-  body {
-    @apply bg-background text-foreground;
-    font-synthesis: none;
-  }
-
-  html {
-    font-size: 100%;
-    scroll-behavior: smooth;
-  }
-
-  section[id] {
-    scroll-margin-top: 4.5rem;
-  }
-
-  h1, h2, h3 {
-    text-wrap: balance;
-  }
-
-  button, a, input, textarea, select {
-    touch-action: manipulation;
-  }
-
-  ::selection {
-    background-color: oklch(0.85 0 0);
-    color: oklch(0.09 0 0);
-  }
-
-  .dark ::selection {
-    background-color: oklch(0.30 0 0);
-    color: oklch(1 0 0);
-  }
-}
-
-/* Keep keyboard focus visible even on controls that reset browser outlines. */
-:where(a, button, input, textarea, select, [tabindex]):focus-visible {
-  outline: 2px solid var(--foreground);
-  outline-offset: 3px;
-}
-
-/* The project panel takes focus itself so Esc and Tab work from the start;
-   the panel is not a control, so it shows no outline of its own */
-[data-project-panel]:focus-visible {
-  outline: none;
-}
-
-/* Rows on Ask's cards run edge to edge and the card clips anything outside
-   it, so their outline is drawn just inside the row instead */
-.ask-card-row:focus-visible {
-  outline-offset: -2px;
-}
-
-/* Ask is a fixed shell where only the conversation scrolls. The page under
-   it must not scroll or rubber-band, or a swipe on the header or composer
-   drags the whole chat around (and Android's pull-to-refresh reloads it). */
-html:has([data-ask-shell]),
-html:has([data-ask-shell]) body {
-  overflow: hidden;
-  overscroll-behavior: none;
-}
-
-/* Ask's buttons and card rows show their own pressed state, so the grey tap
-   flash mobile browsers add on top is dropped there */
-[data-ask-shell] :is(button, .ask-card-row) {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* The palette shows its highlighted row instead of a focus ring */
-[data-command-palette]:focus-visible,
-[data-command-palette] :is(#palette-search, #palette-listbox):focus-visible {
-  outline: none;
-}
-
-/* Ask placeholder while an answer is on its way: three dots pulsing in turn */
-@keyframes ask-dot-pulse {
-  0%,
-  80%,
-  100% {
-    opacity: 0.25;
-  }
-  40% {
-    opacity: 1;
-  }
-}
-
-.ask-dot {
-  animation: ask-dot-pulse 1.2s ease-in-out infinite;
-}
-
-/* <main> takes focus from the skip link (tabIndex -1), and a click inside it
-   right after typing can count as keyboard focus. A ring around the whole
-   page column only showed up as two stray vertical lines. */
-#main-content:focus-visible {
-  outline: none;
-}
-
-/* The Ask field and the newsletter field sit inside a frame with their button;
-   the frame shows an input-colored ring on focus instead of the field drawing
-   its own outline */
-#ask-input:focus-visible,
-[data-pill-input]:focus-visible {
-  outline: none;
-}
-
-.image-outline {
-  outline: 1px solid var(--image-outline);
-  outline-offset: -1px;
-}
-
-@layer utilities {
-  /* Expand compact icon controls without changing their visual geometry.
-     Each control supplies its own relative/absolute positioning. */
-  .touch-target::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: max(100%, 44px);
-    height: max(100%, 44px);
-    translate: -50% -50%;
-  }
-
-  .text-balance {
-    text-wrap: balance;
-  }
-
-}
-
-/* Hold-to-copy: pressing sweeps an inverted copy of the email across slowly;
-   releasing snaps it back fast (asymmetric enter/exit). Mouse-only — on touch,
-   taps and long-presses set :active and trigger a stray partial sweep. */
-.email-fill {
-  clip-path: inset(0 100% 0 0);
-  transition: clip-path 0.2s var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .copy-email:active .email-fill {
-    clip-path: inset(0 0 0 0);
-    transition: clip-path 1s linear;
-  }
-}
-
-@layer utilities {
-  .custom-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .custom-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-  }
-
-  /* Thin overlay-style scrollbar for panels like the command palette list */
   .palette-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--color-border) transparent;
@@ -267,7 +26,6 @@ html:has([data-ask-shell]) body {
     background-color: var(--color-muted-foreground);
   }
 }
-
 
 @keyframes caret-blink {
 
@@ -292,8 +50,6 @@ html:has([data-ask-shell]) body {
   line-height: 1.625;
 }
 
-/* Headings get a lot of space above and little below, so each one reads as
-   attached to the section it opens rather than floating between two. */
 .prose-custom h1,
 .prose-custom h2,
 .prose-custom h3 {
@@ -335,7 +91,6 @@ html:has([data-ask-shell]) body {
   text-wrap: pretty;
 }
 
-/* Matches the underline treatment used everywhere else on the site */
 .prose-custom a {
   color: var(--foreground);
   text-decoration: underline;
@@ -373,8 +128,6 @@ html:has([data-ask-shell]) body {
   color: var(--muted-foreground);
 }
 
-/* Code blocks break the measure and run to the edge of the column, so long
-   lines scroll instead of forcing the prose wider. */
 .prose-custom pre {
   background: var(--muted);
   border: 1px solid var(--border);
@@ -393,7 +146,6 @@ html:has([data-ask-shell]) body {
   background: var(--muted);
   padding: 0.15rem 0.35rem;
   border-radius: calc(var(--radius) - 4px);
-  /* Keeps a long identifier from pushing the paragraph sideways on mobile */
   overflow-wrap: break-word;
 }
 
@@ -416,7 +168,6 @@ html:has([data-ask-shell]) body {
   max-width: 100%;
 }
 
-/* Native route snapshots are outside MotionConfig. Keep navigation interactive. */
 ::view-transition {
   pointer-events: none;
 }
@@ -435,7 +186,6 @@ html:has([data-ask-shell]) body {
   to { opacity: 0; }
 }
 
-/* Keep these overrides after the entrance classes so the static state wins. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -462,7 +212,6 @@ html:has([data-ask-shell]) body {
     --tw-exit-scale: 1;
   }
 
-  /* Vaul injects its CSS at runtime and writes inline settle transitions. */
   .motion-drawer[data-vaul-drawer] {
     transition: none !important;
   }

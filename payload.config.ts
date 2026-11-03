@@ -38,9 +38,6 @@ export default buildConfig({
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: postgresAdapter({
-    // Dev servers push schema changes straight into their own database. Ship a
-    // change by running `bun run migrate:create <name>` and committing the
-    // file; the Vercel build applies pending migrations with `payload migrate`.
     push: true,
     migrationDir: path.resolve(dirname, 'migrations'),
     pool: {

@@ -1,9 +1,5 @@
-// Subsequence fuzzy matcher for the command palette. Scores favor matches at
-// word starts and consecutive runs, so "bp" ranks "Blog Posts" above "About".
-
 export interface FuzzyResult {
   score: number
-  // Indices into the target string, for highlighting matched characters
   indices: number[]
 }
 

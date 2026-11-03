@@ -19,7 +19,6 @@ export type BlogPostTag = {
 }
 
 export function BlogSection({ posts }: { posts: BlogPost[] }) {
-  // An empty "Writing" heading is worse than no section at all
   if (posts.length === 0) return null
 
   return (
@@ -27,8 +26,6 @@ export function BlogSection({ posts }: { posts: BlogPost[] }) {
       <div>
         <div className="flex flex-col">
           {posts.map((post) => (
-            // Same row as the /blog index: a truncated excerpt read as a
-            // broken sentence, so the date carries the second slot instead
             <Link
               key={post.id}
               href={`/blog/${post.slug}`}
@@ -48,8 +45,6 @@ export function BlogSection({ posts }: { posts: BlogPost[] }) {
             </Link>
           ))}
         </div>
-        {/* One quiet line under the posts: the archive on the left, the
-            signup on the right under the dates */}
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <Link
             href="/blog"
@@ -58,9 +53,6 @@ export function BlogSection({ posts }: { posts: BlogPost[] }) {
             View all posts
             <ArrowRight className="h-3 w-3 motion-safe:pointer-fine:group-hover:translate-x-0.5 transition-transform duration-150 ease-out" />
           </Link>
-          {/* The post rows' hover boxes reach 8px past the text (-mx-2 px-2), so
-              the pill reaches out the same 8px: its edge lines up with the
-              rows' edge, and its button with the dates */}
           {NEWSLETTER_ENABLED && <NewsletterForm compact className="w-full sm:-mr-2 sm:w-[21rem]" />}
         </div>
       </div>

@@ -11,26 +11,11 @@ import {
 
 export const maxDuration = 60
 
-// Requests go through OpenRouter's Anthropic-compatible Messages endpoint, so
-// model ids use OpenRouter's slugs. ASK_MODEL overrides the default.
-// Sonnet 5.5 starts answering in about a second, against about three for
-// Opus 5.5, and held the lock's voice in testing
 const DEFAULT_MODEL = 'anthropic/claude-sonnet-5.5'
-// Retried server-side when the model's safety classifiers decline a request.
-// Haiku has no server-side fallback, so its requests go without one.
 const FALLBACK_MODEL = 'anthropic/claude-opus-4.8'
-// Answers are a few sentences; this also caps the cost of a single request
 const MAX_TOKENS = 2000
-// Long enough for a previous answer, short enough that history can't be used
-// to stuff the context
 const MAX_ANSWER_LENGTH = 4000
 
-// Rate limiting happens before this function runs, in the Vercel Firewall
-// rule "Ask rate limit" (see AGENTS.md). The OpenRouter key's credit limit is
-// the hard ceiling on spend.
-
-// History must alternate user/assistant, start and end with a question, and
-// stay within the size limits
 function parseMessages(body: unknown): AskMessage[] | null {
   const messages = (body as { messages?: unknown } | null)?.messages
   if (!Array.isArray(messages) || messages.length === 0) return null
@@ -54,9 +39,6 @@ function errorResponse(code: AskErrorCode, status: number) {
 
 type Outcome = 'answered' | 'stopped' | 'refused' | 'failed'
 
-// Saved so Lucas can see what people ask and what the lock couldn't answer.
-// No IP or other identifier is stored. Best effort: a slow or missing
-// database never affects the answer.
 async function logQuestion(question: string, answer: string, outcome: Outcome) {
   try {
     const payload = await getPayloadClient()
@@ -81,14 +63,10 @@ export async function POST(request: Request) {
   const messages = parseMessages(await request.json().catch(() => null))
   if (!messages) return errorResponse('invalid', 400)
 
-  // OpenRouter authenticates with a bearer token; apiKey: null keeps the SDK
-  // from also sending an ANTHROPIC_API_KEY it might find in the environment
   client ??= new Anthropic({
     baseURL: 'https://openrouter.ai/api',
     apiKey: null,
     authToken: apiKey,
-    // Next's patched fetch otherwise reads the whole upstream response for its
-    // data cache before handing it over, so answers arrived in one burst
     fetchOptions: { cache: 'no-store' },
   })
 
@@ -100,11 +78,8 @@ export async function POST(request: Request) {
       max_tokens: MAX_TOKENS,
       system: [
         { type: 'text', text: system, cache_control: { type: 'ephemeral' } },
-        // After the cache breakpoint so the date doesn't invalidate it
         { type: 'text', text: `Today's date is ${new Date().toISOString().slice(0, 10)}.` },
       ],
-      // The newest question is a cache breakpoint too, so in a long chat the
-      // next question reuses everything before it instead of paying for it
       messages: messages.map((message, index) =>
         index === messages.length - 1
           ? { role: message.role, content: [{ type: 'text' as const, text: message.content, cache_control: { type: 'ephemeral' as const } }] }
@@ -133,12 +108,10 @@ export async function POST(request: Request) {
           }
         }
         const message = await stream.finalMessage()
-        // A refusal can arrive after partial text; the client drops it
         outcome = message.stop_reason === 'refusal' ? 'refused' : 'answered'
         send(outcome === 'refused' ? { type: 'refusal' } : { type: 'done' })
       } catch (error) {
         if (request.signal.aborted) {
-          // A visitor pressing Stop aborts the request; nobody is listening
           outcome = 'stopped'
         } else {
           const busy = error instanceof Anthropic.RateLimitError || error instanceof Anthropic.InternalServerError
@@ -146,12 +119,10 @@ export async function POST(request: Request) {
           send({ type: 'error', code: busy ? 'busy' : 'failed' })
         }
       } finally {
-        // After the last event, so saving never delays an answer
         await logQuestion(question, answer, outcome)
         try {
           controller.close()
         } catch {
-          // Already closed by a cancelled request
         }
       }
     },

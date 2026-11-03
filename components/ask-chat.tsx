@@ -43,7 +43,6 @@ const PROBLEM_TEXT: Record<Problem, string> = {
   failed: 'Something went wrong. Try again.',
 }
 
-// What the lock in the header does once an answer finishes
 const BREAK_IN = /\b(ignore|disregard|forget|override)\b[^.?!]*\b(instructions|rules|prompt)\b|system prompt|jailbreak|developer mode|pretend (you|to be)/i
 const OPEN_UP = /\b(open up|unlock|let me in)\b/i
 
@@ -53,10 +52,6 @@ function reactionFor(question: string): AskLockMood {
   return 'done'
 }
 
-// Every completed turn goes along, so the lock remembers the whole chat. A
-// stopped answer still counts; a refused or empty one is left out so the
-// roles keep alternating. Only a conversation past the server's size guard
-// loses its oldest exchanges.
 function buildHistory(turns: Turn[], question: string): AskMessage[] {
   const pairs = turns
     .filter((turn) => (turn.state === 'done' || turn.state === 'stopped') && turn.answer.trim())
@@ -72,8 +67,6 @@ function buildHistory(turns: Turn[], question: string): AskMessage[] {
   return [...pairs.flat(), { role: 'user', content: question }]
 }
 
-// The conversation is kept for this browser tab, so a refresh or a trip to
-// another page doesn't lose it. Unfinished turns aren't saved.
 const STORAGE_KEY = 'ask:conversation'
 const SAVED_STATES: ReadonlySet<Turn['state']> = new Set(['done', 'stopped', 'refused'])
 
@@ -100,14 +93,9 @@ function saveTurns(turns: Turn[]) {
     if (finished.length) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(finished))
     else sessionStorage.removeItem(STORAGE_KEY)
   } catch {
-    // Storage can be full or blocked; the chat just won't survive a refresh
   }
 }
 
-// The lock writes in lowercase but names keep their capitals. The model
-// misses both often enough that answers are fixed up as they render. A name
-// inside a domain or path (zeroleaks.ai, pare-eight.vercel.app,
-// github.com/x1xhlol/pare) is left alone.
 const PROPER_NAMES = [
   'Lucas', 'ZeroLeaks', 'Orchid', 'Pare', 'Claude', 'ChatGPT', 'OpenAI', 'T3 Code', 'Python', 'TypeScript',
   'React', 'Next.js', 'Convex', 'Vercel', 'GitHub', 'WebAssembly', 'León', 'AI', 'YC', 'LLM', 'API', 'MCP',
@@ -123,15 +111,10 @@ function fixNameCasing(text: string): string {
   return (
     text
       .replace(NAME_PATTERN, (match) => CANONICAL_NAMES.get(match.toLowerCase()) ?? match)
-      // ...and "i" stays lowercase, including i'm, i've, i'd, and i'll
       .replace(/(?<![\w.])I(?=\b|['’])/g, 'i')
   )
 }
 
-// Bare domains (zeroleaks.ai, github.com/x1xhlol/pare) become markdown links
-// before rendering, since markdown only autolinks www. and http(s) URLs. Links,
-// URLs, and emails already in the text are matched first so they're left as
-// they are; a domain right after "[" is a link label still streaming in.
 const TLDS = 'ai|com|dev|app|io|me|net|org|sh|co|so|xyz|fyi|tech|cc|gg|chat|page|site|es'
 const LINKABLE = new RegExp(
   String.raw`(\[[^\]]*\]\([^)]*\)?)|(https?:\/\/[^\s<>]+)|([\w.+-]+@[\w-]+(?:\.[\w-]+)+)|((?<![\w.\-\[/])(?:[a-z0-9-]+\.)+(?:${TLDS})(?:\/[^\s<>()\[\]]*)?)`,
@@ -147,7 +130,6 @@ function linkBareDomains(text: string): string {
   })
 }
 
-// Runs the casing fix on text only, so link targets are never touched
 type MarkdownNode = { type: string; value?: string; children?: MarkdownNode[] }
 function remarkLockCasing() {
   const visit = (node: MarkdownNode) => {
@@ -162,15 +144,9 @@ const REMARK_PLUGINS = [...Object.values(defaultRemarkPlugins), remarkLockCasing
 const LINK_CLASS =
   'font-medium text-foreground underline underline-offset-[5px] decoration-muted-foreground/65 hover:decoration-foreground transition-colors'
 
-// Real links open in a new tab, the site's own pages included, so following
-// one never throws the conversation away. A link still streaming in has a
-// placeholder target and shows as text.
-// Overrides must accept both the tag's own props and Streamdown's generic
-// record, so they take the fields they need as unknown and narrow them
 type MarkdownProps = { href?: unknown; children?: unknown }
 
 function AnswerLink({ href, children }: MarkdownProps) {
-  // A pasted URL reads better without its scheme, like a bare domain does
   const label =
     typeof children === 'string' && /^https?:\/\//.test(children)
       ? children.replace(/^https?:\/\//, '')
@@ -189,8 +165,6 @@ function AnswerParagraph({ children }: MarkdownProps) {
   return <p>{children as React.ReactNode}</p>
 }
 
-// Streamdown's Components type pairs each tag's props with a catch-all
-// record that no single props type satisfies, hence the one cast
 const ANSWER_COMPONENTS = { a: AnswerLink, p: AnswerParagraph } as NonNullable<
   React.ComponentProps<typeof Streamdown>['components']
 >
@@ -202,10 +176,7 @@ function AnswerText({ text, streaming }: { text: string; streaming: boolean }) {
       className="break-words text-base leading-relaxed text-foreground [&_p+p]:mt-3"
       remarkPlugins={REMARK_PLUGINS}
       components={ANSWER_COMPONENTS}
-      // Each visitor only sees their own conversation, so a confirmation
-      // dialog on links protects nobody; it also swaps <a> for <button>
       linkSafety={{ enabled: false }}
-      // Each streamed word fades in from a slight blur, as before
       animated={reducedMotion ? false : { animation: 'blurIn', duration: 350, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
       isAnimating={streaming}
     >
@@ -214,8 +185,6 @@ function AnswerText({ text, streaming }: { text: string; streaming: boolean }) {
   )
 }
 
-// Words go through markdown; a card tag the lock wrote becomes a card, in
-// the order they arrived. Only the last stretch of words is still streaming.
 function Answer({ text, streaming }: { text: string; streaming: boolean }) {
   const parts = splitAnswer(text)
   return (
@@ -231,8 +200,6 @@ function Answer({ text, streaming }: { text: string; streaming: boolean }) {
   )
 }
 
-// A quiet placeholder where the answer will appear; the lock in the header
-// does the acting
 function Thinking() {
   return (
     <p role="status" className="flex h-[26px] items-center gap-1 text-muted-foreground">
@@ -249,7 +216,6 @@ function Thinking() {
   )
 }
 
-// Two questions to ask next, under the latest answer that showed a card
 function FollowUps({ questions, onAsk }: { questions: string[]; onAsk: (question: string) => void }) {
   return (
     <motion.ul
@@ -309,15 +275,11 @@ export function AskChat({
   cardData: Promise<AskCardData> | null
 }) {
   const [turns, setTurns] = useState<Turn[]>([])
-  // False until the saved conversation has been read, so the suggestions
-  // don't flash up before a restored chat replaces them
   const [restored, setRestored] = useState(false)
-  // Bumped by "New chat" so a request it cancelled can't write into the new one
   const generationRef = useRef(0)
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<Problem | null>(null)
-  // Screen readers hear each finished answer once, not every streamed word
   const [announcement, setAnnouncement] = useState('')
   const turnsRef = useRef(turns)
   turnsRef.current = turns
@@ -327,13 +289,10 @@ export function AskChat({
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pinnedRef = useRef(true)
   const scrollRef = useRef<HTMLDivElement>(null)
-  // A hairline under the header once the conversation has scrolled beneath it
   const [scrolled, setScrolled] = useState(false)
-  // The palette can hand over a question while this page is already open
   const handledQuestionRef = useRef<string | null>(null)
 
   const focusInput = useCallback(() => {
-    // On touch, focusing would pop the keyboard over the answer
     if (window.matchMedia('(pointer: fine)').matches) {
       inputRef.current?.focus({ preventScroll: true })
     }
@@ -343,8 +302,6 @@ export function AskChat({
     async (raw: string) => {
       const question = raw.trim().slice(0, MAX_QUESTION_LENGTH)
       if (!question || busyRef.current) return
-      // On a phone the keyboard would cover most of the answer, so it goes
-      // away once the question is sent
       if (window.matchMedia('(pointer: coarse)').matches) inputRef.current?.blur()
       busyRef.current = true
       setBusy(true)
@@ -362,7 +319,6 @@ export function AskChat({
       const update = (patch: Partial<Turn>) => {
         if (live()) setTurns((prev) => prev.map((turn) => (turn.id === id ? { ...turn, ...patch } : turn)))
       }
-      // The question goes back in the box so nothing typed is lost
       const fail = (code: Problem) => {
         if (!live()) return
         setAskLockMood('idle')
@@ -382,8 +338,6 @@ export function AskChat({
           signal: controller.signal,
         })
         if (!response.ok || !response.body) {
-          // Only our own codes count: a 429 from the Vercel Firewall carries
-          // its own JSON, with an object under "error"
           const data = (await response.json().catch(() => null)) as { error?: unknown } | null
           const code = typeof data?.error === 'string' && Object.hasOwn(PROBLEM_TEXT, data.error) ? (data.error as Problem) : null
           fail(code ?? (response.status === 429 ? 'rate_limited' : 'failed'))
@@ -412,7 +366,6 @@ export function AskChat({
             } else if (event.type === 'done') {
               if (answer.trim()) {
                 update({ state: 'done' })
-                // Screen readers get the words, not the markdown or card tags
                 setAnnouncement(answerToSpeech(answer))
                 setAskLockMood(reactionFor(question))
               } else {
@@ -430,13 +383,10 @@ export function AskChat({
             }
           }
         }
-        // The connection closed before the server said it was done
         if (!finished) fail('failed')
       } catch {
         if (!live()) {
-          // Cancelled by "New chat", which already cleared everything
         } else if (controller.signal.aborted) {
-          // Stopped by the visitor: keep whatever arrived
           setAskLockMood('idle')
           if (answer.trim()) {
             update({ state: 'stopped' })
@@ -471,8 +421,6 @@ export function AskChat({
     focusInput()
   }, [focusInput])
 
-  // Before the first paint, so a restored chat shows up in place of the
-  // suggestions rather than after them
   useLayoutEffect(() => {
     const saved = loadTurns()
     if (saved.length) {
@@ -482,7 +430,6 @@ export function AskChat({
     setRestored(true)
   }, [])
 
-  // Saved once each answer settles, not on every streamed word
   useEffect(() => {
     if (restored && !busy) saveTurns(turns)
   }, [turns, busy, restored])
@@ -493,25 +440,19 @@ export function AskChat({
 
   useEffect(() => {
     focusInput()
-    // Leaving the page stops a streaming answer
     return () => abortRef.current?.abort()
   }, [focusInput])
 
-  // Deferred a tick so React's development double-mount cancels the first
-  // timer instead of aborting a request that already started
   useEffect(() => {
     if (!initialQuestion || initialQuestion === handledQuestionRef.current) return
     const timer = setTimeout(() => {
       handledQuestionRef.current = initialQuestion
-      // Drop ?q= so a reload doesn't ask again
       window.history.replaceState(null, '', '/ask')
       send(initialQuestion)
     }, 0)
     return () => clearTimeout(timer)
   }, [initialQuestion, send])
 
-  // Follow the answer as it grows, unless the visitor scrolled up to read.
-  // Only the conversation scrolls; the header and composer stay put.
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -529,8 +470,6 @@ export function AskChat({
     el.scrollTo({ top: el.scrollHeight, behavior: 'instant' })
   }, [turns])
 
-  // The conversation shrinks when a phone keyboard opens or the composer
-  // grows; stay on the latest message if that's where the visitor was
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -541,8 +480,6 @@ export function AskChat({
     return () => observer.disconnect()
   }, [])
 
-  // The field grows with what's typed. Browsers without field-sizing (Safari)
-  // get the same by measuring; max-height still caps it.
   useLayoutEffect(() => {
     const el = inputRef.current
     if (!el || CSS.supports('field-sizing', 'content')) return
@@ -554,8 +491,6 @@ export function AskChat({
     <AskCardDataProvider data={cardData}>
       <div className="relative shrink-0">
         {header}
-        {/* Pinned to the title row, which is short, so it never covers the
-            subtitle or changes how it wraps */}
         <button
           type="button"
           onClick={newChat}
@@ -588,8 +523,6 @@ export function AskChat({
           {announcement}
         </p>
 
-        {/* With a phone keyboard up, space is short: less padding under the
-            composer, and the footnote steps aside */}
         <div className="shrink-0 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] [html[data-keyboard]_&]:pb-2">
           {restored && turns.length === 0 && (
             <motion.ul
@@ -597,8 +530,6 @@ export function AskChat({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.2, ease: EASE_OUT }}
-              // Too little room above a keyboard on a small phone: they step
-              // aside until it closes (the shell's height is the visible area)
               className="mb-3 grid grid-cols-2 gap-2 [@container(max-height:380px)]:hidden"
             >
               {SUGGESTIONS.map((suggestion) => (
@@ -628,8 +559,6 @@ export function AskChat({
             <label htmlFor="ask-input" className="sr-only">
               Your question
             </label>
-            {/* The frame shows focus with an input-colored ring, since the
-                field inside it has no edge of its own */}
             <div className="flex items-end gap-2 rounded-[24px] bg-background p-1.5 shadow-raised transition-shadow duration-150 focus-within:ring-1 focus-within:ring-input">
               <textarea
                 id="ask-input"
@@ -649,9 +578,6 @@ export function AskChat({
                 aria-describedby={problem ? 'ask-problem' : undefined}
                 className="field-sizing-content max-h-32 min-h-9 sm:max-h-48 min-w-0 flex-1 resize-none bg-transparent px-3 py-1.5 text-base leading-6 text-foreground placeholder:text-muted-foreground"
               />
-              {/* Separate keys give each state its own element. Reusing one
-                  would let the click that stops a request finish on a button
-                  that has already turned into submit, sending the question again */}
               {busy ? (
                 <Button key="stop" type="button" size="icon" aria-label="Stop" onClick={stop} className="touch-target relative size-9 rounded-full sm:size-9">
                   <Square className="size-3 fill-current" />

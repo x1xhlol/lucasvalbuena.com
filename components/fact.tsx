@@ -2,11 +2,6 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
-// A word (or small glyph) that reveals a live detail in a popover above it.
-// Hover intent on desktop (short delay, skipped when another fact was just
-// open), tap on touch, focus on keyboard. Dismisses on leave, blur, Escape,
-// or a tap outside.
-
 let lastClosedAt = 0
 const OPEN_DELAY = 120
 const INSTANT_WINDOW = 400
@@ -45,8 +40,6 @@ export function Fact({
 
   useEffect(() => () => clearTimeout(timer.current), [])
 
-  // Keep the panel inside the viewport with a 12px gutter; the arrow-less
-  // card can slide sideways without looking detached
   useEffect(() => {
     if (!open || !panel.current) return
     const rect = panel.current.getBoundingClientRect()
@@ -55,7 +48,6 @@ export function Fact({
     const overflowLeft = gutter - (rect.left + shift)
     if (overflowRight > 0) setShift(-overflowRight)
     else if (overflowLeft > 0) setShift(overflowLeft)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   useEffect(() => {

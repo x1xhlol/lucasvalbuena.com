@@ -15,7 +15,6 @@ const EMAIL = 'lucasvalbuena@pm.me'
 
 const OPEN_EVENT = 'open-command-palette'
 
-// Anything with a search box or a keyboard trigger can open the palette
 export function openCommandPalette() {
   window.dispatchEvent(new Event(OPEN_EVENT))
 }
@@ -24,22 +23,16 @@ type PaletteGroup = 'Pages' | 'Sections' | 'Projects' | 'Writing' | 'Actions' | 
 
 const GROUP_ORDER: Record<PaletteGroup, number> = { Pages: 0, Sections: 1, Projects: 2, Writing: 3, Actions: 4, Theme: 5, Ask: 6 }
 
-// Long enough for the palette to close and hand focus back before the
-// project panel takes it
 const PROJECT_OPEN_DELAY = 200
 
 interface PaletteItem {
   id: string
   label: string
   group: PaletteGroup
-  // Quiet trailing detail: a path, anchor, date, or handle
   meta?: string
-  // Footer verb for what Enter does on this row
   verb: string
-  // Extra strings the query also matches against (e.g. "dark" for theme)
   keywords?: string
   external?: boolean
-  // Marks the option reflecting current state (e.g. the active theme)
   current?: boolean
   perform: () => void | Promise<'copied'>
 }
@@ -119,7 +112,6 @@ export function CommandPalette() {
     }
   }, [])
 
-  // Posts load once, on first open, so the shortcut stays instant
   useEffect(() => {
     if (!open || posts !== null) return
     let cancelled = false
@@ -281,8 +273,6 @@ export function CommandPalette() {
     if (query.trim() === '') {
       return items.map((item) => ({ item, indices: [] as number[] }))
     }
-    // Groups rank by their best match so the top hit leads the list, and rows
-    // stay contiguous per group so each header renders exactly once
     const matches = items
       .map((item) => {
         const labelMatch = fuzzyMatch(query.trim(), item.label)
@@ -305,8 +295,6 @@ export function CommandPalette() {
         b.score - a.score,
     )
     if (!ASK_ENABLED) return sorted
-    // Any typed query can also go to the Ask page as a question, which keeps
-    // a search with no matches from being a dead end
     const question = query.trim().slice(0, MAX_QUESTION_LENGTH)
     const askItem: PaletteItem = {
       id: 'ask-query',
@@ -319,14 +307,10 @@ export function CommandPalette() {
     return [...sorted, { item: askItem, indices: [] as number[] }]
   }, [items, query, navigate])
 
-  // Highlight tracks the best match while typing; arrow keys and pointer
-  // moves take over between keystrokes
   useEffect(() => {
     setActiveId(results[0]?.item.id ?? null)
   }, [query, open])
 
-  // Keep the highlight valid when results change under a stable query
-  // (e.g. posts finish loading)
   useEffect(() => {
     if (!results.some((r) => r.item.id === activeId)) {
       setActiveId(results[0]?.item.id ?? null)
@@ -373,10 +357,6 @@ export function CommandPalette() {
     [results, activeId],
   )
 
-  // A tapped row can hold DOM focus while the highlight moves by any route
-  // (arrows, hover, results changing). Reclaiming list focus whenever the
-  // highlight changes keeps native Enter/Space activation on the highlighted
-  // row rather than a stale focused one
   useEffect(() => {
     const list = listRef.current
     if (list && document.activeElement !== list && list.contains(document.activeElement)) {
@@ -401,13 +381,8 @@ export function CommandPalette() {
     [moveActive, results, activeId, runItem],
   )
 
-  // The list container holds focus when the palette opens by tap, so a
-  // hardware keyboard still works from there: arrows/Enter drive the list
-  // directly and typing hands the keystroke to the search field
   const onListKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
-      // A row button can hold DOM focus after a touch tap; Enter/Space on it
-      // activate natively as a click, which runs that exact row
       const onRowButton =
         e.target instanceof HTMLElement && e.target.closest('[data-item-id]') !== null
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || (e.key === 'Enter' && !onRowButton)) {
@@ -415,9 +390,6 @@ export function CommandPalette() {
         return
       }
       if (onRowButton && (e.key === 'Enter' || e.key === ' ')) return
-      // AltGr composes a printable character; the dedicated modifier state
-      // covers Windows/Linux (ctrl+alt) and macOS Option without swallowing
-      // plain Ctrl/Meta/Alt chords
       const altGraph = e.getModifierState('AltGraph')
       if (
         e.key === 'Backspace' ||
@@ -435,7 +407,6 @@ export function CommandPalette() {
     [onInputKeyDown, query],
   )
 
-  // Rows are flat for keyboard order; group headers render between them
   let lastGroup: string | null = null
 
   const activeItem = results.find((r) => r.item.id === activeId)?.item
@@ -444,15 +415,10 @@ export function CommandPalette() {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
       <DialogPrimitive.Portal>
-        {/* Opened from a shortcut many times a day, so it appears instantly */}
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[12px] backdrop-saturate-[1.2] reduce-transparency:bg-black/40 reduce-transparency:backdrop-blur-none" />
         <DialogPrimitive.Content
           data-command-palette
           aria-describedby={undefined}
-          // On touch the palette doubles as the nav menu: opened by tap it
-          // starts browsable — focus lands on the list, not the input, so the
-          // soft keyboard only comes up if the field itself is tapped. Opened
-          // by shortcut (a hardware keyboard exists) the input focuses as usual
           onOpenAutoFocus={(e) => {
             if (isCoarsePointer && !openedByKeyboardRef.current) {
               e.preventDefault()
@@ -500,8 +466,6 @@ export function CommandPalette() {
             id="palette-listbox"
             role="listbox"
             aria-label="Commands"
-            // Duplicated from the input: whichever of the two holds DOM focus
-            // must expose the highlighted option to assistive tech
             aria-activedescendant={activeId ? `palette-item-${activeId}` : undefined}
             tabIndex={-1}
             onKeyDown={onListKeyDown}
@@ -535,16 +499,9 @@ export function CommandPalette() {
                     aria-current={item.current || undefined}
                     tabIndex={-1}
                     onPointerMove={() => setActiveId(item.id)}
-                    // Focus stays in the search box so the keyboard keeps
-                    // driving the list when an action leaves the palette open.
-                    // Touch keeps the default sequence: some WebKit builds
-                    // drop the synthesized click when pointerdown is cancelled
                     onPointerDown={(e) => {
                       if (e.pointerType !== 'touch') e.preventDefault()
                     }}
-                    // Also sync the highlight: a tap can leave DOM focus on
-                    // this row while the palette stays open, and Enter/Space
-                    // activate the focused row natively
                     onClick={() => {
                       setActiveId(item.id)
                       runItem(item)

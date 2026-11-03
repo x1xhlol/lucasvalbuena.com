@@ -2,13 +2,10 @@ import { ImageResponse } from 'next/og'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-// OG image palette lines up with .dark in globals.css
-// bg matches --background: oklch(0.12 0 0)
 const bg = '#060606'
 const fg = '#f2f2f2'
 const border = '#454545'
 
-// Satori won't load WOFF2; ship Geist TTFs in-repo.
 async function loadFonts() {
   const dir = join(process.cwd(), 'app', '(frontend)', 'fonts')
   const sans600 = await readFile(join(dir, 'Geist-SemiBold.ttf'))
@@ -18,7 +15,6 @@ async function loadFonts() {
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-// Need node:fs to read font files below.
 export const runtime = 'nodejs'
 
 export default async function Image() {

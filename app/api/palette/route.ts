@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getPayloadClient } from '@/lib/payload'
 
-// Published post titles for the command palette. Cached like the blog index;
-// new posts appear within a minute.
 export const revalidate = 60
 
 export async function GET() {

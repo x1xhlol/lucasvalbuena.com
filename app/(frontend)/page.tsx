@@ -12,7 +12,6 @@ import type { BlogPost } from '@/components/blog-section'
 import { getPayloadClient } from '@/lib/payload'
 import { getProjectStats } from '@/lib/github-api'
 
-// ISR: serve the page from cache; posts and stats refresh in the background
 export const revalidate = 60
 
 async function LatestPosts() {
@@ -44,13 +43,8 @@ async function LatestPosts() {
 }
 
 export default async function Page() {
-  // Resolved here (ISR-cached) instead of behind a Suspense boundary: a
-  // suspended hero flashes the blank fallback and replays its entrance
-  // whenever the stats fetch is in flight during revalidation
   const stats = await getProjectStats()
   return (
-    // With the Ask band, the gray runs on behind the page and the page sits
-    // on it like a sheet, its top corners rounded where the band ends
     <div className={`relative min-h-screen ${ASK_ENABLED ? 'bg-muted' : ''}`}>
       <Navigation isHome hasBanner={ASK_ENABLED} />
       <SideNav />

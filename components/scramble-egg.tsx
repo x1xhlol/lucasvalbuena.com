@@ -17,8 +17,6 @@ export function ScrambleEgg() {
       if (intervalRef.current) return
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-      // Decode left-to-right per heading, not per text node — the hero name is
-      // split into one-character spans, which would otherwise resolve instantly
       type Entry = { node: Text; original: string; offset: number; total: number }
       const nodes: Entry[] = []
       document.querySelectorAll('h1, h2, h3').forEach((heading) => {

@@ -5,9 +5,6 @@ import { SEND_DELAY, type NewsletterEnv } from '@/lib/newsletter/config'
 import { createConfirmToken } from '@/lib/newsletter/token'
 import { renderConfirmEmail, renderPostEmail, type PostEmailInput } from '@/lib/newsletter/emails'
 
-// Everything that talks to Resend. Each function returns a plain result
-// instead of throwing, so callers decide what a failure means for the visitor.
-
 type Result<T = undefined> = { ok: true; value: T } | { ok: false; error: string }
 
 const client = (env: NewsletterEnv) => new Resend(env.apiKey)
@@ -16,24 +13,18 @@ export async function sendConfirmation(env: NewsletterEnv, email: string): Promi
   const token = createConfirmToken(email, env.secret)
   const confirmUrl = `${siteConfig.url.replace(/\/$/, '')}/newsletter/confirm?t=${encodeURIComponent(token)}`
   const { subject, html, text } = renderConfirmEmail(confirmUrl)
-  // One confirmation per address per hour, however often the form is sent:
-  // Resend drops a repeat of the same key within 24 hours
   const hour = Math.floor(Date.now() / 3_600_000)
   const addressKey = createHash('sha256').update(email).digest('hex').slice(0, 32)
   const { error } = await client(env).emails.send(
     { from: env.from, to: email, replyTo: env.replyTo, subject, html, text },
     { idempotencyKey: `newsletter-confirm/${addressKey}/${hour}` },
   )
-  // A repeat within the hour comes back as a 409; to the visitor that's the
-  // same as success, since the first email is already on its way
   if (error && error.name !== 'invalid_idempotent_request' && error.name !== 'concurrent_idempotent_requests') {
     return { ok: false, error: `${error.name}: ${error.message}` }
   }
   return { ok: true, value: undefined }
 }
 
-// Adds a confirmed address to the newsletter segment. Someone who
-// unsubscribed earlier and confirms again is resubscribed.
 export async function subscribe(env: NewsletterEnv, email: string): Promise<Result> {
   const resend = client(env)
   const existing = await resend.contacts.get({ email })
@@ -55,8 +46,6 @@ export async function subscribe(env: NewsletterEnv, email: string): Promise<Resu
   return { ok: true, value: undefined }
 }
 
-// A one-off copy of a post's email to NEWSLETTER_TEST_TO, with the footer's
-// unsubscribe link pointing at the site instead of a real subscription
 export async function sendPostTest(env: NewsletterEnv, post: PostEmailInput): Promise<Result> {
   if (!env.testTo) return { ok: false, error: 'NEWSLETTER_TEST_TO is not set' }
   const { subject, html, text } = renderPostEmail(post, `${siteConfig.url.replace(/\/$/, '')}/privacy`)
@@ -71,8 +60,6 @@ export async function sendPostTest(env: NewsletterEnv, post: PostEmailInput): Pr
   return error ? { ok: false, error: `${error.name}: ${error.message}` } : { ok: true, value: undefined }
 }
 
-// Schedules the teaser for every subscriber. Returns the broadcast id so the
-// post can record it and never send twice.
 export async function schedulePostBroadcast(env: NewsletterEnv, post: PostEmailInput): Promise<Result<string>> {
   const { subject, html, text } = renderPostEmail(post)
   const { data, error } = await client(env).broadcasts.create({

@@ -1,13 +1,9 @@
-// Sky over León on the lock creature's 16x16 grid: sun or moon (at its real
-// phase), alone, behind a cloud, or a cloud with rain, snow or thunder.
-// Sunrise and sunset from the NOAA approximation.
 const LAT = 42.5987
 const LON = -5.5671
 const RAD = Math.PI / 180
 
 export type Condition = 'clear' | 'partly' | 'cloud' | 'rain' | 'snow' | 'thunder'
 
-// WMO weather interpretation codes, as served by Open-Meteo
 export function conditionForCode(code: number): Condition {
   if (code <= 1) return 'clear'
   if (code === 2) return 'partly'
@@ -45,12 +41,11 @@ export function skyNow(now = new Date()) {
   return { isDay, time: clock.format(now), nextLabel: isDay ? 'sun sets' : 'sun rises', next }
 }
 
-// 0 new, 0.25 first quarter, 0.5 full, 0.75 last quarter
 const SYNODIC_DAYS = 29.530588853
 const NEW_MOON = Date.UTC(2000, 0, 6, 18, 14)
 export const moonPhase = (date: Date) => ((((date.getTime() - NEW_MOON) / 86_400_000 / SYNODIC_DAYS) % 1) + 1) % 1
 
-type Px = [number, number, number?] // x, y, opacity
+type Px = [number, number, number?]
 const key = (x: number, y: number) => `${x},${y}`
 const inDisc = (x: number, y: number, cx: number, cy: number, r: number) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r
 
@@ -62,7 +57,6 @@ function sun(cx: number, cy: number, r: number, reach: number): Px[] {
   return px
 }
 
-// Lit side on the right while waxing (northern hemisphere); the dark side stays as a faint disc
 function moon(cx: number, cy: number, r: number, phase: number): Px[] {
   const px: Px[] = []
   const c = Math.cos(phase * Math.PI * 2)

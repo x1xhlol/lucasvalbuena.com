@@ -1,5 +1,3 @@
-// Where to reach Lucas, for the Ask lock's profile and its contact card. The
-// home page's contact prose links the same places; keep the two in step.
 export const CONTACT_EMAIL = 'lucasvalbuena@pm.me'
 
 export const CONTACT_LINKS = [

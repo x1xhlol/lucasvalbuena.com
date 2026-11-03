@@ -12,8 +12,6 @@ const links = [
   { href: '/photos', label: 'Photos' },
 ]
 
-// The home page carries no desktop nav bar, so its page links live in a quiet
-// fixed rail on the right edge instead. Mobile keeps the drawer.
 export function SideNav() {
   const [isMac, setIsMac] = useState(true)
 

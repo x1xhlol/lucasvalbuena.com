@@ -5,9 +5,6 @@ import { type Condition, PixelSky, moonPhase, skyNow } from '@/components/pixel-
 
 type Weather = { condition: Condition; isDay: boolean }
 
-// Clock popover: time in Spain, when the sun next turns, and the sky as a
-// pixel glyph from live conditions. Time ticks on the minute, weather every
-// 15 minutes; without weather the glyph falls back to a clear sky.
 export function SkyPopover() {
   const [now, setNow] = useState(() => new Date())
   const [weather, setWeather] = useState<Weather | null>(null)

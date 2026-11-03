@@ -18,8 +18,6 @@ export type BlogPostCover = {
   height?: number | null
 }
 
-// Presentational shell for a post. Kept separate from the route so the body can
-// come from Payload's RichText in production and from plain markup in a preview.
 export function BlogPostLayout({
   title,
   slug,
@@ -79,7 +77,6 @@ export function BlogPostLayout({
 
         {cover?.url && (
           <figure className="mt-10">
-            {/* Payload gives real dimensions, so the box is reserved before load */}
             <Image
               src={cover.url}
               alt={cover.alt ?? ''}

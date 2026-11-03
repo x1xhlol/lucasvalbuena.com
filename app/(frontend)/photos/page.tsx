@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   },
 }
 
-// ISR: serve the gallery from cache and refresh the manifest in the background
 export const revalidate = 60
 
 export default async function PhotosPage() {

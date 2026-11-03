@@ -1,18 +1,10 @@
-// Project copy shared by the home page list and the Ask agent's context, so
-// the two never describe a project differently.
 export interface ProjectData {
-  // Stable id the Ask lock uses to show this project's card
   slug: string
   title: string
-  // One line for the home page list
   description: string
-  // The details panel text, also given to the Ask agent
   fullDescription: string
   image?: string
-  // Width / height of the screenshot, so the details panel can size it
-  // before it loads
   imageAspect?: number
-  // GitHub "owner/name" whose stars and forks the details panel shows
   repo?: string
   links: {
     github?: string
@@ -21,8 +13,6 @@ export interface ProjectData {
   }
 }
 
-// ?project=<slug> on the home page opens that project's details, and the
-// command palette asks an already-open home page to do the same
 export const PROJECT_PARAM = 'project'
 export const OPEN_PROJECT_EVENT = 'open-project'
 

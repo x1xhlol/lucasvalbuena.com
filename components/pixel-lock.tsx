@@ -5,12 +5,8 @@ import { motion } from 'motion/react'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { EASE_OUT } from '@/lib/motion'
 
-// Fired with {x, y} (viewport coords) when the little lock is clicked enough
-// times to escape; LockFamiliar listens and spawns the big one from there.
 export const LOCK_SUMMON_EVENT = 'pixel-lock:summon'
 
-// 16x16 pixel padlock creature. The eyes are gaps in the body so it reads
-// correctly on any background in both themes.
 const IDLE = [
   '................',
   '.....######.....',
@@ -30,10 +26,8 @@ const IDLE = [
   '...##......##...',
 ]
 
-// Closed eyes: only the lower half of each eye stays open
 const BLINK = IDLE.map((row, y) => (y === 9 ? '.##############.' : row))
 
-// One eye closed, the other wide open
 const WINK_LEFT = IDLE.map((row, y) => (y === 9 ? '.#########..###.' : row))
 const WINK_RIGHT = IDLE.map((row, y) => (y === 9 ? '.###..#########.' : row))
 
@@ -45,10 +39,8 @@ const LOOK_RIGHT = IDLE.map((row, y) =>
   y === 9 || y === 10 ? '.####..####..##.' : row,
 )
 
-// Wide-eyed: eyes grow a pixel taller
 const HAPPY = IDLE.map((row, y) => (y === 8 ? '.###..####..###.' : row))
 
-// Shackle pops open on the right side
 const OPEN = IDLE.map((row, y) => {
   if (y === 4 || y === 5) return '....##..........'
   return row
@@ -138,7 +130,6 @@ export function PixelLock({
   const buttonRef = useRef<HTMLButtonElement>(null)
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
-  // Idle life: mostly blinking, sometimes a wink, the occasional glance
   useEffect(() => {
     if (reducedMotion) {
       setFrame('idle')
@@ -163,7 +154,6 @@ export function PixelLock({
             rest()
           }, 130)
         } else if (roll < 0.74) {
-          // A wink is deliberate — hold it longer than a blink
           setFrame(roll < 0.66 ? 'winkLeft' : 'winkRight')
           next(() => {
             setFrame('idle')
@@ -186,7 +176,6 @@ export function PixelLock({
     }
   }, [reducedMotion])
 
-  // Greet: a little hop and a wink the first time it scrolls into view
   useEffect(() => {
     if (!greet || reducedMotion) return
     const el = buttonRef.current
@@ -221,7 +210,6 @@ export function PixelLock({
     unlockTimer.current = setTimeout(() => {
       setUnlocked(false)
       if (reducedMotion) return
-      // Snap shut, then wink — I let you see that
       unlockTimer.current = setTimeout(() => {
         setFrame('winkLeft')
         unlockTimer.current = setTimeout(() => setFrame('idle'), 320)
@@ -244,7 +232,6 @@ export function PixelLock({
           detail: {
             x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
             y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
-            // No cursor to chase on touch devices — it wanders instead
             mode: window.matchMedia('(pointer: fine)').matches
               ? 'cursor'
               : 'wander',

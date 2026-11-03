@@ -21,12 +21,9 @@ const ERRORS: Record<NewsletterErrorCode | 'network', string> = {
   network: "Couldn't reach the site. Check your connection and try again.",
 }
 
-// The same stand-ins the hero name scrambles through
 const GLYPHS = 'acenorsuvxz*+=<>'
 const DECODE_TICK_MS = 38
 
-// Text that resolves out of scrambled glyphs from left to right, like the
-// name in the hero. Screen readers get the plain text straight away.
 function Decode({ text, reducedMotion }: { text: string; reducedMotion: boolean }) {
   const [shown, setShown] = useState(reducedMotion ? text : '')
   useEffect(() => {
@@ -63,9 +60,6 @@ function Decode({ text, reducedMotion }: { text: string; reducedMotion: boolean 
 
 type Mood = 'idle' | 'looking' | 'valid' | 'thinking' | 'nope' | 'done'
 
-// The footer lock's moves, smaller: it watches you type, perks up at a
-// real-looking address, glances around while sending, shakes its head at a
-// failure, and hops and winks when the email is on its way
 function useLock(reducedMotion: boolean) {
   const [scope, animate] = useAnimate<HTMLSpanElement>()
   const [frame, setFrame] = useState<LockFrame>('idle')
@@ -125,11 +119,9 @@ function useLock(reducedMotion: boolean) {
           break
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [animate, reducedMotion],
   )
 
-  // A blink now and then while nothing is happening
   useEffect(() => {
     const id = setInterval(() => {
       if (mood.current !== 'idle' || document.hidden) return
@@ -145,16 +137,6 @@ function useLock(reducedMotion: boolean) {
   return { scope, frame, set }
 }
 
-// "New posts by email". The address goes to /api/newsletter, which emails a
-// confirmation link; nothing is stored until that link is confirmed.
-//
-// A pill in the Ask composer's language, with the site's pixel lock living at
-// its left end. When the signup goes through, the Subscribe button stretches
-// across the pill and becomes the confirmation, decoding in like the hero
-// name. `compact` is the quiet version for the home page's Writing section:
-// no heading (the placeholder says it), a smaller pill, and a soft button
-// instead of a solid one, so it sits beside "View all posts" without
-// competing with the posts.
 export function NewsletterForm({ compact = false, className = '' }: { compact?: boolean; className?: string }) {
   const id = useId()
   const inputId = `${id}-email`
@@ -168,7 +150,6 @@ export function NewsletterForm({ compact = false, className = '' }: { compact?: 
   const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [focused, setFocused] = useState(false)
 
-  // The confirmation page sends people back with ?subscribed=1
   useEffect(() => {
     const url = new URL(window.location.href)
     if (url.searchParams.get('subscribed') !== '1') return
@@ -176,7 +157,6 @@ export function NewsletterForm({ compact = false, className = '' }: { compact?: 
     lock.set('done')
     url.searchParams.delete('subscribed')
     window.history.replaceState(window.history.state, '', url)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => () => clearTimeout(typingTimer.current), [])
@@ -232,8 +212,6 @@ export function NewsletterForm({ compact = false, className = '' }: { compact?: 
   const done = state.kind === 'sent' || state.kind === 'subscribed'
   const sending = state.kind === 'sending'
   const showLock = focused || email !== '' || state.kind !== 'idle'
-  // After a signup the pill itself says "check your inbox", so the line
-  // above stays as it was
   const hint =
     state.kind === 'subscribed'
       ? 'New posts will land in your inbox. Every email has an unsubscribe link.'
@@ -257,7 +235,6 @@ export function NewsletterForm({ compact = false, className = '' }: { compact?: 
       )}
 
       <form onSubmit={submit} noValidate className={compact ? '' : 'mt-4'}>
-        {/* Hidden from people, irresistible to bots */}
         <div aria-hidden className="absolute -left-[9999px] h-px w-px overflow-hidden">
           <label>
             Company
@@ -268,16 +245,11 @@ export function NewsletterForm({ compact = false, className = '' }: { compact?: 
         <div
           ref={pillScope}
           className={`relative flex items-center gap-1 rounded-full bg-background shadow-raised transition-shadow duration-150 ${
-            // The 1px ring is drawn outside the box, so the compact pill steps in
-            // by 1px a side to put its visible edge exactly on the column's
             compact ? 'mx-px h-10 w-[calc(100%-2px)] p-1' : 'h-12 w-full p-1.5 sm:max-w-sm'
           } ${
             state.kind === 'error' ? 'ring-1 ring-destructive' : 'focus-within:ring-1 focus-within:ring-input'
           }`}
         >
-          {/* The lock isn't there until you click in. It pops in at the
-              pill's left end, stays while there's something to watch, and
-              tucks itself away again if you leave the field empty. */}
           <AnimatePresence initial={false}>
             {showLock && (
               <motion.span
@@ -297,7 +269,6 @@ export function NewsletterForm({ compact = false, className = '' }: { compact?: 
                   className="inline-flex"
                 >
                   <span ref={lock.scope} className="inline-flex">
-                    {/* 24px is three screen pixels per lock pixel on a retina display */}
                     <PixelLockSprite frame={lock.frame} size={24} />
                   </span>
                 </motion.span>
@@ -328,7 +299,6 @@ export function NewsletterForm({ compact = false, className = '' }: { compact?: 
                   onChange={(event) => onType(event.target.value)}
                   onFocus={() => {
                     setFocused(true)
-                    // Arrives looking at the field, then settles
                     if (normalizeEmail(email)) lock.set('valid')
                     else {
                       lock.set('looking')
@@ -351,15 +321,11 @@ export function NewsletterForm({ compact = false, className = '' }: { compact?: 
             )}
           </AnimatePresence>
 
-          {/* The button stays mounted and stretches across the pill when the
-              signup goes through, turning into the confirmation */}
           <motion.div
             layout
             transition={SPRING_MORPH}
             style={{ borderRadius: 999 }}
             className={`relative flex items-center overflow-hidden transition-colors duration-200 ease-out ${compact ? 'h-8' : 'h-9'} ${
-              // The quiet version's button is soft until the signup goes
-              // through; the confirmation is solid everywhere
               compact && !done ? 'bg-muted text-foreground hover:bg-border' : 'bg-primary text-primary-foreground'
             } ${done ? 'min-w-0 flex-1' : 'shrink-0'}`}
           >

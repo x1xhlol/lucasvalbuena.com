@@ -17,8 +17,6 @@ async function getPhotos(): Promise<AskCardData['photos']> {
   }
 }
 
-// Never rejects: stats fall back to dashes and posts and photos to empty
-// lists, and a card without them still renders
 export async function getAskCardData(): Promise<AskCardData> {
   const [stats, posts, photos] = await Promise.all([getProjectStats(), getPosts(), getPhotos()])
   return {

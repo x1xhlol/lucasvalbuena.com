@@ -19,7 +19,6 @@ function useGlitchText(target: string, duration = 500) {
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
   useEffect(() => {
-    // Rapid character flicker is exactly what reduced-motion users opt out of
     if (reducedMotion) {
       setText(target)
       return

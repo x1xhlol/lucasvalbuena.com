@@ -114,7 +114,6 @@ async function extractMetadata(file: File): Promise<{
       height = exif.ExifImageHeight || exif.ImageHeight || 0
     }
   } catch {
-    // EXIF is optional; images without readable metadata can still be uploaded.
   }
 
   if (!width || !height) {
@@ -123,20 +122,15 @@ async function extractMetadata(file: File): Promise<{
       width = dims.width
       height = dims.height
     } catch {
-      // Formats the browser cannot decode keep the gallery's fallback dimensions.
     }
   }
 
   return { metadata, width, height }
 }
 
-// The file that gets uploaded: GPS is removed here, so it never leaves the
-// device. The coordinates read above go to the server only to be turned into
-// a place name.
 async function withoutLocation(file: File): Promise<File> {
   const bytes = stripLocation(new Uint8Array(await file.arrayBuffer()))
   const { default: exifr } = await import('exifr')
-  // Formats exifr can't read (WebP) rely on stripLocation alone
   const gps = await exifr.gps(bytes).catch(() => undefined)
   if (gps?.latitude != null) throw new Error(`GPS left in ${file.name}`)
   return new File([bytes], file.name, { type: file.type, lastModified: file.lastModified })
@@ -201,7 +195,6 @@ export function PhotoUpload({ onUploaded }: PhotoUploadProps) {
     setUploading(true)
 
     async function uploadPhoto(preview: PreviewFile): Promise<UploadedPhoto> {
-      // A failed gallery save can retry without uploading the same file again.
       if (preview.uploaded) return preview.uploaded
       const { file } = preview
       const { metadata, width, height } = await extractMetadata(file)

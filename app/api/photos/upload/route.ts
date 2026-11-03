@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
         }
       },
       onUploadCompleted: async () => {
-        // Manifest updates happen in POST /api/photos
       },
     })
 

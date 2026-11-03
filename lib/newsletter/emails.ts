@@ -1,15 +1,5 @@
 import { siteConfig } from '@/lib/site'
 
-// Hand-written email HTML. Mail clients each support a different slice of
-// HTML and CSS, so this sticks to what renders everywhere: tables for layout,
-// inline styles on every element, and a <style> block only for things that
-// can safely degrade (web fonts, dark mode, small-screen padding, link
-// colour fixes). Outlook on Windows gets its own fixed-width wrapper and a
-// VML button so the pill keeps its shape.
-//
-// Colours are the site's tokens from app/globals.css, converted to hex
-// because most clients don't understand oklch().
-
 const SITE = siteConfig.url.replace(/\/$/, '')
 const HOST = new URL(SITE).host
 
@@ -20,8 +10,6 @@ const C = {
   muted: '#696969',
   rule: '#e3e3e3',
   buttonText: '#fcfcfc',
-  // Dark mode, where the client honours prefers-color-scheme (Apple Mail,
-  // iOS Mail, Outlook for Mac, Outlook.com)
   dBg: '#0a0a0a',
   dFg: '#e4e4e4',
   dBody: '#d4d4d4',
@@ -39,15 +27,11 @@ const GUTTER = 32
 const ENTITIES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => ENTITIES[c])
 
-// Inbox preview text, followed by invisible padding so the client doesn't
-// pull body text into the preview after it
 function preheader(text: string) {
   const filler = '&#847;&zwnj;&nbsp;'.repeat(90)
   return `<div style="display:none;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:${C.bg};opacity:0;">${escapeHtml(text)}${filler}</div>`
 }
 
-// A pill that stays a pill in Outlook for Windows (VML) and is a plain
-// padded link everywhere else, so the whole shape is clickable
 function button(href: string, label: string, width: number) {
   const url = escapeHtml(href)
   const text = escapeHtml(label)
@@ -174,8 +158,6 @@ function mutedLink(href: string, label: string) {
   return `<a href="${escapeHtml(href)}" target="_blank" class="muted link" style="color:${C.muted};text-decoration:underline;">${escapeHtml(label)}</a>`
 }
 
-// Footer links set apart by space alone. Table cells, because Outlook ignores
-// margins on links.
 function linkRow(links: [href: string, label: string][]) {
   const cells = links
     .map(([href, label], i) => `<td style="padding:0 ${i === links.length - 1 ? 0 : 20}px 0 0;font-family:${SANS};font-size:13px;line-height:20px;">${mutedLink(href, label)}</td>`)
@@ -200,8 +182,6 @@ export type PostEmailInput = {
 
 export type RenderedEmail = { subject: string; html: string; text: string }
 
-// Resend swaps this for each subscriber's own unsubscribe link and adds the
-// one-click List-Unsubscribe headers Gmail and Yahoo require
 export const UNSUBSCRIBE_PLACEHOLDER = '{{{RESEND_UNSUBSCRIBE_URL}}}'
 
 export function postUrl(slug: string) {
